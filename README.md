@@ -37,6 +37,10 @@ The site uses relative asset and data paths, so a project-path `/<repo>/` works 
 
 Learning notes and experiments use `localStorage` key `learn-workbench.progress.v1`, stay in the current browser profile, and are not uploaded to GitHub. Export backups from Journal before browser cleanup or device changes. Browser localStorage can be cleared or blocked; backups are essential. Import replaces the current browser record with user confirmation. There is no telemetry.
 
+## Share lessons across chats and back up progress
+
+The site now has a **Sync · 协作与备份** page with a copyable GitHub handoff prompt and a separate private-backup walkthrough. For the full operational protocol, see [`SYNC.md`](SYNC.md). Public lesson updates go to PRs in this repository; personal study JSON goes **only** to an additional **private** repository created and authorized by the owner. There is no site-side GitHub login, automatic cloud backup, or cross-device merge.
+
 ## Add a unit without breaking the experience
 
 1. Capture the real difficulty and original source/assignment version in an Issue.

@@ -7,3 +7,6 @@
 - D05: First shipping gate is one working site with a small pedagogical lab, not account management or adaptive tutor orchestration.
 - D06: Use dependency-free ES modules for the initial, testable static bootstrap. Review React + TypeScript + MDX when a real content-growth use case warrants migration. This supersedes the earlier framework-first assumption only for M0.
 - D07: Independent competence cannot be inferred from site interactions or official-looking scores. Authentic source assignments and unfamiliar changes remain essential.
+
+- D08: Cross-chat lesson updates go through GitHub branches and PRs. A chat must inspect current repo and current-chat sources; there is no automatic cross-chat context sharing.
+- D09: Store personal snapshots in a separately authorized private repository. The public site can export and import JSON but does not hold GitHub write credentials or provide automatic remote sync. Preserve timestamped backups and clarify that imports replace local records.
