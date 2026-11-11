@@ -1,0 +1,83 @@
+.mg-unit { max-width: 880px; }
+.mg-unit [hidden] { display: none; }
+.mg-unit p, .mg-unit summary, .mg-unit label { overflow-wrap: anywhere; }
+.mg-bench {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.mg-programs { display: grid; grid-template-columns: 1fr 1fr; background: #e8f2ec; }
+.mg-program { min-width: 0; padding: 21px 24px; color: #214c3f; }
+.mg-program + .mg-program { background: #ecf2f5; color: #2a4d61; }
+.mg-program h2 { margin: 0 0 10px; font-size: 13px; font-weight: 750; }
+.mg-program > code {
+  display: block; font: 600 clamp(16px, 2.2vw, 24px)/1.35 ui-monospace, Menlo, monospace;
+}
+.mg-program p { margin: 7px 0 0; font-size: 13px; line-height: 1.65; }
+.mg-workspace { padding: 24px; }
+.mg-settings { margin: 0; padding: 0; border: 0; min-width: 0; }
+.mg-settings legend, .mg-results h2, .mg-history h2, .mg-next h2 {
+  padding: 0; margin: 0 0 12px; color: var(--ink); font-size: 18px; letter-spacing: -.025em;
+  font-weight: 750;
+}
+.mg-controls { display: flex; gap: 12px; flex-wrap: wrap; }
+.mg-controls label, .mg-fold-body label, .mg-reflection label {
+  display: block; color: #3e545e; font-size: 13px; font-weight: 650; line-height: 1.65;
+}
+.mg-controls select {
+  display: block; margin-top: 5px; width: 100%; min-width: 115px; min-height: 42px;
+  padding: 6px 12px; color: var(--ink); background: white; border: 1px solid #bccdc8; border-radius: 8px;
+}
+.mg-condition, .mg-reading, .mg-fold-body p, .mg-onward { margin-top: 16px; }
+.mg-next p {
+  color: #455e65; font-size: 14px; line-height: 1.85;
+}
+.mg-condition { margin: 10px 0 14px; }
+.mg-fold { background: #f8faf8; border: 1px solid #dae4df; border-radius: 10px; }
+.mg-fold summary { cursor: pointer; color: #285747; font-size: 13px; font-weight: 700; padding: 13px 15px; }
+.mg-fold summary:focus-visible { outline-offset: -3px; border-radius: 10px; }
+.mg-fold-body { padding: 0 15px 14px; }
+.mg-fold-body p { margin: 0 0 8px; }
+.mg-fold-body p:last-child { margin-bottom: 0; }
+.mg-fold-body small { color: #526962; font-size: 12px; line-height: 1.7; }
+.mg-unit textarea {
+  display: block; width: 100%; min-height: 64px; margin: 5px 0; resize: vertical;
+  padding: 8px 11px; border-radius: 8px; border: 1px solid #bccdc8; background: white;
+  color: var(--ink); font-size: 14px; line-height: 1.65;
+}
+.mg-unit textarea[readonly] { background: #f2f6f4; }
+.mg-run { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.mg-save-error { color: #824d29; font-size: 13px; }
+.mg-results, .mg-history { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 20px; }
+.mg-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.mg-table caption { text-align: left; color: #536670; margin-bottom: 8px; font-size: 13px; }
+.mg-table th, .mg-table td { text-align: right; padding: 9px 10px; border-bottom: 1px solid #dce7e2; }
+.mg-table th:first-child { text-align: left; }
+.mg-table thead th { background: #f1f5f3; font-weight: 700; }
+.mg-table tbody th { font-weight: 500; color: #42565e; }
+.mg-results .mg-table tr:last-child > * { font-weight: 750; color: #1d5745; background: #edf7f0; }
+.mg-reading { margin: 10px 0 16px; }
+.mg-reflection { margin-top: 10px; }
+.mg-help { display: grid; gap: 8px; margin: 14px 0 23px; }
+.mg-next { padding: 20px 0 0; border-top: 1px solid var(--line); }
+.mg-onward { margin-top: 16px; }
+.mg-next p { margin: 7px 0; }
+.mg-next code { font-size: .95em; overflow-wrap: anywhere; }
+.mg-next .mg-source { margin-top: 18px; font-size: 13px; }
+.mg-links { display: flex; align-items: baseline; gap: 3px 18px; flex-wrap: wrap; }
+.mg-links a { color: #146752; font-size: 13px; font-weight: 700; padding: 3px 0;
+  text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.mg-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 580px) {
+  .mg-workspace { padding: 16px; }
+  .mg-program { padding: 15px 12px; }
+  .mg-program h2, .mg-program p { font-size: 12px; }
+  .mg-controls { gap: 10px; }
+  .mg-controls label { flex: 1; }
+  .mg-controls select { min-width: 0; }
+  .mg-table th, .mg-table td { padding: 8px 5px; }
+  .mg-links { gap: 0 14px; }
+  .mg-links a { padding: 7px 0; }
+}

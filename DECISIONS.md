@@ -10,3 +10,5 @@
 
 - D08: Cross-chat lesson updates go through GitHub branches and PRs. A chat must inspect current repo and current-chat sources; there is no automatic cross-chat context sharing.
 - D09: Store personal snapshots in a separately authorized private repository. The public site can export and import JSON but does not hold GitHub write credentials or provide automatic remote sync. Preserve timestamped backups and clarify that imports replace local records.
+
+- D10: The micrograd bridge compares two programs at the same starting value and perturbation. Keep optional pre-measurement writing and post-measurement explanation separate for each condition. The KL lab also places the derivation behind an explicit choice. Record observable help context. Learning and transfer require independent learner work.

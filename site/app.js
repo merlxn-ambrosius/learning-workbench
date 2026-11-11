@@ -1,3 +1,4 @@
+import { microgradPage, mountMicrograd } from './micrograd-view.mjs';
 import {
   COURSE_LINKS, SCENARIOS, TEACHER_DIST, STORAGE_KEY,
   studentDistribution, klDivergence, klLogitGradient,
@@ -66,21 +67,29 @@ function shell(route, body) {
       <nav class="side-nav" aria-label="学习工作台导航">${nav.map(([key,label,zh])=>`<a href="#/${key}" class="side-link ${family===key?'active':''}" ${family===key?'aria-current="page"':''}>${svg(key)}<span>${label} · ${zh}</span></a>`).join('')}</nav>
       <div class="side-spacer"></div><div class="side-foot"><span class="status-dot"></span>本地模式 · 零 API 调用<br>个人数据默认留在此浏览器<br>开源课程与真实作品优先</div>
     </aside>
-    <div class="workspace"><header class="topbar"><div class="crumb">LEARN <span style="color:#b0bfbd">/</span> <strong>${current[1]}</strong></div><div class="top-actions"><span class="private-tag">◉ &nbsp; 本地私有记录</span><a class="icon-btn" href="#/journal" aria-label="打开学习记录" title="记录与备份">${svg('journal')}</a></div></header><main class="content" id="page-content">${body}<div class="foot-note">LEARN Workbench · alpha / 学习材料与测评结论分开记录 · 无登录、无追踪、无外部模型调用</div></main></div>
+    <div class="workspace"><header class="topbar"><div class="crumb">LEARN <span style="color:#b0bfbd">/</span> <strong>${current[1]}</strong></div><div class="top-actions"><span class="private-tag">◉ &nbsp; 本地私有记录</span><a class="icon-btn" href="#/journal" aria-label="打开学习记录" title="记录与备份">${svg('journal')}</a></div></header><main class="content" id="page-content" tabindex="-1">${body}<div class="foot-note">LEARN Workbench · alpha / 学习材料与测评结论分开记录 · 无登录、无追踪、无外部模型调用</div></main></div>
   </div>`;
 }
 function section(title, caption='') {return `<div class="section-header"><h2>${title}</h2><span>${caption}</span></div>`;}
 function moduleCard({tag, icon, title, text, href, foot, color=''}) {
   return `<a class="card card-click" href="${href}"><div class="type-icon ${color}">${icon}</div><h3>${title}</h3><p>${text}</p><div class="card-foot"><span>${tag} · ${foot}</span>${svg('arrow')}</div></a>`;
 }
+function microgradCard() {
+  return moduleCard({
+    tag: 'Zero to Hero', icon: '×', title: 'micrograd · 两个相等的输入',
+    text: '同时扰动两段乘法程序的输入，追踪每个因子，再把你的解释写成求导器。',
+    href: '#/learn/micrograd', foot: '第一讲 · 数值实验与 Python 构造', color: 'warm',
+  });
+}
 function home() {
   const resume = progress.lastRoute || '#/learn/agent';
   return `<section class="hero"><p class="eyebrow">YOUR LEARNING, IN PROGRESS</p><h1>继续思考，<br><strong>而不是重新开始。</strong></h1><p>一处工作台，连接成熟课程、真实实验和你自己的推导。没有必须逐页生啃的文件，也没有强制通关。</p><div class="hero-actions"><a class="btn btn-primary" href="${escapeHtml(resume)}">继续上次学习 ${svg('arrow')}</a><a class="btn btn-ghost-dark" href="#/learn">浏览学习单元</a></div></section>
-    <div class="stats"><div class="stat"><strong>02</strong><span>可用的交互学习试点</span></div><div class="stat"><strong>${atlas?.nodes?.length ?? '20'}</strong><span>继承 Atlas 的知识节点</span></div><div class="stat"><strong>${progress.evidence.length}</strong><span>本地记录的学习事件</span></div></div>
+    <div class="stats"><div class="stat"><strong>03</strong><span>可用的交互学习试点</span></div><div class="stat"><strong>${atlas?.nodes?.length ?? '20'}</strong><span>继承 Atlas 的知识节点</span></div><div class="stat"><strong>${progress.evidence.length}</strong><span>本地记录的学习事件</span></div></div>
     ${section('当前学习方向','一门连续主课 + 按需机制补桥')}
     <div class="grid2">
       ${moduleCard({tag:'主线课程',icon:'↗',title:'从模型回复到可控程序',text:'Stanford CS329Z 导学：观察分类、程序合同与摘要流程如何协作。浏览器内是教学模拟；真正作业仍来自原仓库。',href:'#/learn/agent',foot:'Agent Engineering'})}
       ${moduleCard({tag:'机制补桥',icon:'∂',title:'KL 散度与知识蒸馏',text:'直接调整学生概率，观察损失和梯度。先预测，再验证“学生该往哪里更新”。',href:'#/learn/kl',foot:'Model Fundamentals',color:'blue'})}
+    ${microgradCard()}
     </div>
     ${section('工作台的三个承诺','不把页面浏览算作真正掌握')}
     <div class="grid3"><div class="card"><div class="type-icon">01</div><h3>先理解</h3><p>从清晰的问题与原始课程材料出发。你可以独立探索，也可以直接看解释。</p></div><div class="card"><div class="type-icon warm">02</div><h3>亲自构造</h3><p>课程原作业与实验工作台相互补充。可运行结果不等同于机制理解。</p></div><div class="card"><div class="type-icon blue">03</div><h3>带走能力</h3><p>记录预测、修订和陌生变化，不用装饰性的掌握百分比代替证据。</p></div></div>
@@ -90,6 +99,7 @@ function learnIndex() {
   return `<p class="eyebrow">CURATED LEARNING</p><h1 class="page-title">交互课程</h1><p class="lead">成熟课程负责连续教学。这个平台负责把必要的机制可视化、把困难拆解清楚，并把思考和实际作业连接起来。下面是可用试点，不是完整课程认证。</p><div class="grid2">
     ${moduleCard({tag:'Agent · 导学',icon:'↗',title:'CS329Z — Harness 的最小机制',text:'区分模型给出的文本、程序允许的状态，以及结果进入摘要的过程。包含真正作业入口。',href:'#/learn/agent',foot:'1 个导学单元'})}
     ${moduleCard({tag:'Math · 探索',icon:'∂',title:'知识蒸馏 — 为什么梯度这样走',text:'从教师 80% 与学生 95% 的猫概率出发，推导 KL 损失和更新方向。',href:'#/learn/kl',foot:'1 个交互实验',color:'blue'})}
+    ${microgradCard()}
     </div><div class="light-panel" style="margin-top:20px"><h3>课程版权与完整性</h3><p>我们链接外部课程的原始作业、视频与代码；不假装已复刻完整教学和评分服务。本站的模拟器是原创的形成性练习，不是 CS329Z 官方判题环境。</p></div>`;
 }
 function learnAgent() {
@@ -117,6 +127,7 @@ function labIndex() {
   return `<p class="eyebrow">EXPERIMENT STUDIO</p><h1 class="page-title">实验工作室</h1><p class="lead">可以先作预测再运行，也可以直接看演示。实验结果会标明帮助条件，不能自动升级为独立能力证明。</p><div class="grid2">
     ${moduleCard({tag:'控制流程',icon:'↗',title:'Scripted Agent Replies',text:'不调用模型 API，清楚观察字符串、类别、未知状态和摘要之间的关系。',href:'#/lab/agent',foot:'确定性模拟器'})}
     ${moduleCard({tag:'概率机制',icon:'∂',title:'KL · 分布与梯度',text:'滑动概率，实时计算 KL(P || Q) 和 softmax logit 梯度。',href:'#/lab/kl',foot:'交互计算实验',color:'blue'})}
+    ${microgradCard()}
   </div>`;
 }
 function labAgent() {
@@ -131,20 +142,40 @@ function labAgent() {
     ${result?`<div class="card"><div class="step-tag">STEP 3 · 执行轨迹</div><h3>每个输入都有去处</h3><table class="case-table"><thead><tr><th>ID</th><th>原始文本</th><th>程序状态</th></tr></thead><tbody>${result.rows.map(item=>`<tr><td>${item.id}</td><td><code>${escapeHtml(item.reply)}</code></td><td><span class="tag ${item.category==='unclassified'?'unknown':''}">${escapeHtml(item.category)}</span></td></tr>`).join('')}</tbody></table><div class="result ${result.counts.unclassified?'warning':''}"><b>摘要输入（真实生成模型未运行）</b><pre>${escapeHtml(result.digest)}</pre><p>合计：high ${result.counts.high}，low ${result.counts.low}，unclassified ${result.counts.unclassified}</p>${predicted?`<p>${predicted==='keep'?'你的预测符合本站模拟合同。':'你的预测与本站模拟合同不同。这是设计差异；请比较各自的后果。'}</p>`:'<p>你选择了直接演示；这次记录属于有帮助观察，不是独立预测。</p>'}</div><button class="btn btn-outline btn-small" id="agent-reflect">保存反思节点</button></div>`:''}
    </section><aside class="stack lesson-side"><div class="card"><h3>关于程序的事实</h3><p>将文本 trim 并转为小写，然后仅接受 high/low。其他情况标记 unclassified。保留所有邮件在最终摘要中的位置。</p><p>它证明“合同可检查”，并不证明“优先级判断正确”。</p></div><div class="card"><h3>下一步是真实工程</h3><p>去原始作业仓库完成对应代码与测试。这个实验室不会提交 Python 作业，也不包含官方解答。</p><p>${external(COURSE_LINKS.cs329z,'打开 CS329Z HW1')}</p></div></aside></div>`;
 }
-function bars(q) {
+const klAnswerNames = {down:'下降', up:'上升', same:'保持不变'};
+
+function bars(q, showGradient) {
   const student = studentDistribution(q);
   const names = ['Cat · 猫','Dog · 狗','Bird · 鸟'];
   const series=(data,kind)=>data.map((prob,i)=>`<div class="dist-row"><b>${names[i]}</b><div class="bar-track"><div class="bar ${kind}" style="width:${(prob*100).toFixed(4)}%"></div></div><span>${(prob*100).toFixed(1)}%</span></div>`).join('');
   const kl = klDivergence(TEACHER_DIST, student);
   const gradient = klLogitGradient(TEACHER_DIST, student)[0];
-  return `<div class="grid2"><div><div class="legend"><span>教师 P</span></div>${series(TEACHER_DIST,'teacher')}</div><div><div class="legend"><span class="student">学生 Q</span></div>${series(student,'student')}</div></div><div class="metric-row"><div class="metric"><div class="big">${fmt(kl)}</div><div class="metric-label">KL(P || Q) · nats<br>越接近 0，两个分布越接近</div></div><div class="metric"><div class="big">${gradient>0?'+':''}${fmt(gradient)}</div><div class="metric-label">∂KL / ∂z_cat = Q_cat − P_cat<br>梯度下降方向：${gradient>0?'降低猫 logit':gradient<0?'提高猫 logit':'没有猫 logit 梯度'}</div></div></div>`;
+  const gradientMetric = showGradient ? `<div class="metric"><div class="big">${gradient>0?'+':''}${fmt(gradient)}</div><div class="metric-label">此处猫 logit 的梯度 · 学生猫概率 ${Math.round(q*100)}%<br>${gradient>0?'梯度下降会降低猫 logit':gradient<0?'梯度下降会提高猫 logit':'这一点的梯度为零'}</div></div>` : '';
+  return `<div class="grid2"><div><div class="legend"><span>教师 P</span></div>${series(TEACHER_DIST,'teacher')}</div><div><div class="legend"><span class="student">学生 Q</span></div>${series(student,'student')}</div></div><div class="metric-row"><div class="metric"><div class="big">${fmt(kl)}</div><div class="metric-label">KL(P || Q) · nats<br>测量当前学生分布与教师分布的差异</div></div>${gradientMetric}</div>`;
 }
+
+function klExplanation(answer) {
+  const comparison = answer === 'down' ? '你的判断与这个起点的更新一致。'
+    : Object.hasOwn(klAnswerNames,answer) ? '可以把滑块从 95% 向两侧各移一步，比较哪一侧的损失更低。' : '';
+  return `<div class="result"><h3>95% 起点的更新</h3><p>对于 softmax，∂KL / ∂z_cat = Q_cat − P_cat。起点的值是 0.95 − 0.80 = +0.15。只调整猫 logit 时，沿负梯度走一小步，猫 logit 降低，猫的概率也随之下降。</p><p>在下面移动滑块，可以对照不同位置的损失和该位置的 logit 梯度。${comparison}</p></div>`;
+}
+
 function labKL() {
-  const answer = progress.decisions.klPrediction;
-  return `<p class="eyebrow">LAB 02 / KNOWLEDGE DISTILLATION</p><h1 class="page-title">让学生的分布靠近教师</h1><p class="lead">先在 95% 猫概率下判断梯度下降方向，然后拖动滑块。每个数字都由浏览器实时计算，没有使用模型 API。</p>
-  <div class="two-columns"><section class="stack"><div class="card"><div class="step-tag">STEP 1 · 分布</div><h3>教师固定，学生可变</h3><p class="subtle tiny">教师 P = [0.80, 0.15, 0.05]。学生猫概率可移动，剩余概率按照狗:鸟 = 3:1 分配。</p><div class="field"><label for="student-cat">学生猫概率：<strong id="cat-percent">${session.studentCat}%</strong></label><input type="range" id="student-cat" min="51" max="99" value="${session.studentCat}" step="1" aria-describedby="dist-method"/><span id="dist-method" class="tiny subtle">调整范围 51%–99%。拖动时下方数据实时更新。</span></div><div id="distribution" class="dist-wrap">${bars(session.studentCat/100)}</div></div>
-    <div class="card"><div class="step-tag">STEP 2 · 预测与验证</div><h3>如果只优化 KL，猫概率应该怎么变？</h3><div class="field"><label for="kl-prediction">相对于教师 80%、学生 95% 的初始情形</label><select id="kl-prediction"><option value="">请选择预测</option><option value="down" ${answer==='down'?'selected':''}>应该下降</option><option value="up" ${answer==='up'?'selected':''}>应该继续上升</option><option value="same" ${answer==='same'?'selected':''}>应该保持不变</option></select></div><div class="actions"><button id="kl-save" class="btn btn-outline">${answer?'修订并记录预测':'记录预测'}</button><button id="kl-reveal" class="btn btn-primary">展示机制解释 ${svg('arrow')}</button><button id="kl-reset" class="btn btn-outline btn-small">恢复 95%</button></div>${session.klRevealed?`<div class="result"><b>核心推导</b><p>对 softmax logits，有 ∂KL(P || Q)/∂z_cat = Q_cat − P_cat。</p><p>初始时为 0.95 − 0.80 = +0.15。梯度下降沿负梯度方向更新，因此猫的 logit 应下降；在这一受控分布里，将学生猫概率从 95% 推向 80% 会降低 KL。</p><p>${answer?`你的原判断：${answer==='down'?'下降':answer==='up'?'上升':'不变'}。${answer==='down'?'与此情形一致。':'不一致；可重新拖动并检查。'}`:'你直接查看了说明；这不构成独立预测证据。'}</p><p>注意：这不是 one-hot 监督损失，也没有包含温度 T 或其他 loss 项。</p></div>`:''}</div>
-    </section><aside class="stack lesson-side"><div class="card"><h3>你在操纵什么？</h3><p>这是三类别 softmax 的概率分布切片。我们直接设置学生概率，而不是在真正的模型中更新参数。</p><p>梯度显示的是对 logit 的数学导数，不是对滑块数值的导数。</p></div><div class="card"><h3>关键自查</h3><p>把猫概率调成 80%，看 KL 是否趋近 0。再调回 95%，比较梯度符号。</p><p>下一阶段可以扩展为温度与交叉熵混合损失，但我们先证明这一个机制被理解。</p></div></aside></div>`;
+  const savedAnswer = progress.decisions.klPrediction;
+  const answer = Object.hasOwn(klAnswerNames,savedAnswer) ? savedAnswer : '';
+  return `<p class="eyebrow">KNOWLEDGE DISTILLATION</p><h1 class="page-title">让学生的分布靠近教师</h1>
+  <p class="lead">教师给猫 80%，学生给猫 95%。如果只用教师分布做蒸馏，一次很小的梯度更新会把学生带向哪里？</p>
+  <div class="two-columns"><section class="stack">
+    <div class="card"><h2>在 95% 的起点作判断</h2><p>只调整学生的猫 logit，狗和鸟的 logits 保持固定。你可以先写下判断，也可以直接看解释。</p>
+      <div class="field"><label for="kl-prediction">这一步之后，学生的猫概率会怎样变化？</label><select id="kl-prediction"><option value="">选择方向</option>${Object.entries(klAnswerNames).map(([key,name])=>`<option value="${key}" ${answer===key?'selected':''}>${name}</option>`).join('')}</select></div>
+      <div class="actions"><button type="button" id="kl-save" class="btn btn-outline">${answer?'更新判断':'记录判断'}</button><button type="button" id="kl-reveal" class="btn btn-primary" aria-controls="kl-explanation" aria-expanded="${session.klRevealed}">${session.klRevealed?'收起解释':'查看机制解释'}</button></div>
+      <p class="status-line" id="kl-saved" role="status">${answer?`上次记录的 95% 起点判断 · ${klAnswerNames[answer]}`:''}</p>
+      <div id="kl-explanation">${session.klRevealed?klExplanation(answer):''}</div>
+    </div>
+    <div class="card"><h2>移动学生分布，比较损失</h2><p>教师分布固定为猫 80%、狗 15%、鸟 5%。滑块只改变学生分布，余下的概率按狗与鸟 3 比 1 分配。</p>
+      <div class="field"><label for="student-cat">当前学生猫概率 · <strong id="cat-percent">${session.studentCat}%</strong></label><input type="range" id="student-cat" min="51" max="99" value="${session.studentCat}" step="1" aria-valuetext="${session.studentCat}%" aria-describedby="dist-method"/><span id="dist-method" class="tiny subtle">可用方向键微调。上方的问题始终指 95% 的起点。</span></div>
+      <div id="distribution" class="dist-wrap">${bars(session.studentCat/100,session.klRevealed)}</div><button type="button" id="kl-reset" class="btn btn-outline btn-small">滑块回到 95%</button>
+    </div></section><aside class="stack lesson-side"><div class="card"><h3>这个滑块怎样对应模型？</h3><p>猫 logit 改变，softmax 会重新分配三个类别的概率。其他两个 logits 固定时，狗和鸟的概率之比保持不变。滑块让你直接选取这条曲线上的一个分布。</p><p>想核对自己的判断，可以在起点附近选两个位置，比较各自的损失。</p></div></aside></div>`;
 }
 function atlasIndex() {
   if (!atlas) return `<h1 class="page-title">知识航图</h1><p class="lead">Atlas 数据尚未载入。请在本地 HTTP 服务器打开，而非直接双击 HTML 文件。</p>`;
@@ -215,6 +246,8 @@ function journal() {
     <div class="field"><label for="note-agent">Agent 工程</label><textarea data-note="agent" id="note-agent" placeholder="写下你独立发现的机制、没解决的问题…">${escapeHtml(progress.notes.agent)}</textarea></div>
     <div class="field"><label for="note-kl">模型与梯度</label><textarea data-note="kl" id="note-kl" placeholder="今天最关键的推导或反例…">${escapeHtml(progress.notes.kl)}</textarea></div>
     <div class="field"><label for="note-general">其他想法</label><textarea data-note="general" id="note-general" placeholder="下一次学习要从哪里继续？">${escapeHtml(progress.notes.general)}</textarea></div><div id="save-status" class="status-line" role="status">修改后自动保存到本地浏览器</div></div>
+    ${Object.values(progress.micrograd.trials).some(trial => trial.ran || trial.prediction || trial.explanation)
+      ? '<div class="card"><h3>自动微分实验草稿</h3><p>测量前的判断和观察后的解释随各组条件保存在本机，也会进入 JSON 备份。</p><a class="source-link" href="#/learn/micrograd">回到上次的实验条件 →</a></div>' : ''}
     <div class="card"><div class="step-tag">LEARNING EVIDENCE</div><h3>最近的预测与实验</h3>${evidence.length?`<ul class="timeline">${evidence.map(item=>`<li><span class="timeline-dot"></span><div class="detail"><b>${escapeHtml(item.kind)}</b> · <small>${escapeHtml(firstDate(item.date))}</small><p>${escapeHtml(item.summary)}</p><small>帮助条件：${escapeHtml(item.help)}</small></div></li>`).join('')}</ul>`:'<div class="empty">还没有实验记录。打开 Lab，做一次预测或观察，学习事件就会出现在这里。</div>'}</div>
     </section><aside class="stack lesson-side"><div class="card"><h3>数据备份</h3><p>导出 JSON 可备份和迁移。导入之前会提示确认，以免覆盖现有记录。若要保存到 GitHub，请使用额外的 private 仓库。</p><div class="actions"><button id="export-progress" class="btn btn-primary btn-small">${svg('download')} 导出我的记录</button><button id="import-progress" class="btn btn-outline btn-small">导入备份</button><input id="import-file" type="file" accept=".json,application/json" hidden /></div><p style="margin-top:12px"><a class="source-link" href="#/sync">怎样备份到 private 仓库，以及让其他 Chat 同步课程 →</a></p></div>
       <div class="warning-panel"><strong>隐私说明</strong><p>本网站没有注册、数据库、分析脚本和第三方 AI 调用。浏览器数据并不自动同步到 GitHub。公开网站意味着课程页面可以被其他人访问，但个人笔记不会因此被上传。</p></div>
@@ -223,11 +256,17 @@ function journal() {
 function render() {
   const route = getPath();
   const body = route==='home'?home():
-    route==='learn'?learnIndex():route==='learn/agent'?learnAgent():route==='learn/kl'?learnKL():
+    route==='learn/micrograd'?microgradPage():route==='learn'?learnIndex():route==='learn/agent'?learnAgent():route==='learn/kl'?learnKL():
     route==='lab'?labIndex():route==='lab/agent'?labAgent():route==='lab/kl'?labKL():
     route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():home();
   $('#app').innerHTML = shell(route,body);
-  if (/^(learn\/(agent|kl)|lab\/(agent|kl)|atlas\/node\/)/.test(route)) {
+  if (route === 'learn/micrograd') {
+    mountMicrograd($('.mg-unit'), progress.micrograd, next => {
+      progress.micrograd = next;
+      return persist();
+    });
+  }
+  if (/^(learn\/(agent|kl|micrograd)|lab\/(agent|kl)|atlas\/node\/)/.test(route)) {
     progress.lastRoute=`#/${route}`;persist();
   }
   document.title = `${nav.find(n=>n[0]===navRoute(route))?.[1]||'LEARN'} · LEARN Workbench`;
@@ -244,7 +283,8 @@ document.addEventListener('input', event=>{
   if (el.id==='student-cat') {
     session.studentCat=Number(el.value);
     const amount=$('#cat-percent');if(amount)amount.textContent=`${session.studentCat}%`;
-    const graph=$('#distribution');if(graph)graph.innerHTML=bars(session.studentCat/100);
+    el.setAttribute('aria-valuetext', `${session.studentCat}%`);
+    const graph=$('#distribution');if(graph)graph.innerHTML=bars(session.studentCat/100,session.klRevealed);
   }
   if (el.id==='atlas-search') {
     session.atlasQuery=el.value;
@@ -258,6 +298,11 @@ document.addEventListener('change', event=>{
   if(el.id==='import-file' && el.files?.length) importBackup(el.files[0]);
 });
 document.addEventListener('click', async event=>{
+  if (event.target.closest('.skip-link')) {
+    event.preventDefault();
+    $('#page-content')?.focus();
+    return;
+  }
   const button=event.target.closest('button');if(!button)return;
   if(button.id==='agent-save') {
     const answer=$('#agent-prediction')?.value;
@@ -277,19 +322,39 @@ document.addEventListener('click', async event=>{
     showToast('反思节点已保存到 Journal。');
   }
   if(button.id==='kl-save') {
-    const answer=$('#kl-prediction')?.value;
-    if(!answer)return showToast('请先选择你预测的更新方向。');
+    const prediction=$('#kl-prediction');
+    const answer=prediction.value;
+    if(!answer) {
+      $('#kl-saved').textContent='请先选择方向，或直接查看机制解释。';
+      prediction.focus();
+      return;
+    }
     const previous=progress.decisions.klPrediction;
     progress.decisions.klPrediction=answer;
-    record('KL 预测',`教师猫 80%、学生猫 95%，预测更新方向：${answer}${previous?'（修订）':''}`,'独立预测（自报）');
-    render();showToast('预测已记录。');
+    record('KL 判断', `教师猫 80%、学生猫 95%，判断猫概率${klAnswerNames[answer]}${previous?'（修订）':''}。`,
+      session.klRevealed ? '记录时已展开解释'
+        : progress.decisions.klSawExplanation === 'yes' ? '此浏览器记录显示曾查看解释' : '帮助情况未确认');
+    button.textContent='更新判断';
+    $('#kl-saved').textContent=`已记录 95% 起点的判断 · ${klAnswerNames[answer]}`;
+    if(session.klRevealed) $('#kl-explanation').innerHTML=klExplanation(answer);
   }
   if(button.id==='kl-reveal') {
-    session.klRevealed=true;
-    record('KL 推导','查看 KL(P || Q) 关于学生猫 logit 的梯度方向。',progress.decisions.klPrediction?'先预测后查看':'直接查看解释');
-    render();
+    session.klRevealed=!session.klRevealed;
+    button.setAttribute('aria-expanded', String(session.klRevealed));
+    button.textContent=session.klRevealed?'收起解释':'查看机制解释';
+    $('#kl-explanation').innerHTML=session.klRevealed?klExplanation(progress.decisions.klPrediction):'';
+    $('#distribution').innerHTML=bars(session.studentCat/100,session.klRevealed);
+    if (session.klRevealed) {
+      progress.decisions.klSawExplanation = 'yes';
+      record('KL 推导','查看 95% 起点的机制解释与当前分布的猫 logit 梯度。','查看解释');
+    }
   }
-  if(button.id==='kl-reset') {session.studentCat=95;render();}
+  if(button.id==='kl-reset') {
+    const slider=$('#student-cat');
+    slider.value='95';
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
+    showToast('滑块已回到 95%。');
+  }
   if(button.id==='copy-sync-prompt') {
     try {
       if(!navigator.clipboard?.writeText)throw new Error('Clipboard API unavailable');
