@@ -2,7 +2,7 @@
 
 > Continue thinking, not starting over. 先学真实课程，再为真正需要的机制添加交互。
 
-A small, browser-first educational workspace for independent study and future agent-assisted maintenance. It combines two interactive teaching bridges, recovered Atlas navigation, and private browser-local learning notes. **It is not a complete university course or a certified skills test.**
+A small, browser-first educational workspace for independent study and future agent-assisted maintenance. It combines three interactive teaching bridges, recovered Atlas navigation, and private browser-local learning notes. **It is not a complete university course or a certified skills test.**
 
 ## Start locally
 
@@ -29,7 +29,7 @@ The site uses relative asset and data paths, so a project-path `/<repo>/` works 
 ## What is real, and what is a teaching simulation?
 
 - **Real and tested in source:** the KL(P||Q) calculations and softmax-logit gradient; deterministic script normalization, counting and digest; local data import/normalization; Atlas data loaded from previous project.
-- **Original illustrative content:** two short learning bridges and scripted examples. The Agent simulator is not the official CS329Z exercise, grader, or a real model call.
+- **Original illustrative content:** short Agent, KL distillation and micrograd bridges. The micrograd unit measures finite differences for a shared operand and a fixed operand, with a downloadable Python starter and a public example. The Agent simulator is not the official CS329Z exercise, grader, or a real model call.
 - **Requires external work:** CS329Z HW1 Problem 1 (`priority`) and Problem 2 (`daily_digest`) should be completed in Stanford's own repository and checked against its contract; follow its AI-use and academic rules.
 - **Not included:** private authentication, cross-device sync, Python execution, live agent services, hidden evaluation banks.
 

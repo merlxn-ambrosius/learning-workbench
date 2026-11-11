@@ -1,3 +1,5 @@
+import { normalizeMicrograd } from './micrograd.mjs';
+
 /** Core educational mechanics. Pure functions keep experiments independently testable. */
 
 export const COURSE_LINKS = Object.freeze({
@@ -90,6 +92,7 @@ export function defaultProgress() {
     notes: { agent: '', kl: '', general: '' },
     evidence: [],
     decisions: {},
+    micrograd: normalizeMicrograd(null),
   };
 }
 
@@ -99,8 +102,9 @@ export function normalizeProgress(value) {
     throw new Error('这不是兼容版本的 LEARN 学习记录。');
   }
   const output = defaultProgress();
+  output.micrograd = normalizeMicrograd(value.micrograd);
   const route = String(value.lastRoute ?? '');
-  if (/^#\/(home|learn(?:\/(?:agent|kl))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
+  if (/^#\/(home|learn(?:\/(?:agent|kl|micrograd))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
     output.lastRoute = route;
   }
   if (value.notes && typeof value.notes === 'object') {
