@@ -100,7 +100,7 @@ export function normalizeProgress(value) {
   }
   const output = defaultProgress();
   const route = String(value.lastRoute ?? '');
-  if (/^#\/(home|learn(?:\/(?:agent|kl))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal)$/.test(route)) {
+  if (/^#\/(home|learn(?:\/(?:agent|kl))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
     output.lastRoute = route;
   }
   if (value.notes && typeof value.notes === 'object') {
@@ -128,4 +128,10 @@ export function normalizeProgress(value) {
     }));
   }
   return output;
+}
+
+/** Unique, sortable snapshot filename; no private data in filename. */
+export function backupFileName(date = new Date()) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) throw new TypeError('Invalid backup date');
+  return `learn-progress-${date.toISOString().replace(/[:.]/g, '-')}.json`;
 }

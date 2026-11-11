@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   classifyScriptedReply, runHarness, studentDistribution,
   TEACHER_DIST, klDivergence, klLogitGradient,
-  defaultProgress, normalizeProgress,
+  defaultProgress, normalizeProgress, backupFileName,
 } from '../site/logic.mjs';
 
 test('Scripted reply normalization preserves ambiguity', () => {
@@ -42,4 +42,14 @@ test('Import validation disallows unsupported and unbounded data', () => {
   const huge = normalizeProgress({version: 1, notes:{general:'A'.repeat(20000)}, lastRoute:'https://bad.example', evidence:[]});
   assert.equal(huge.notes.general.length, 12000);
   assert.equal(huge.lastRoute, defaultProgress().lastRoute);
+});
+
+test('Backup snapshots have unique timestamped, safe filenames', () => {
+  assert.equal(backupFileName(new Date('2026-11-11T07:00:05.123Z')), 'learn-progress-2026-11-11T07-00-05-123Z.json');
+  assert.notEqual(backupFileName(new Date('2026-11-11T07:00:05.123Z')), backupFileName(new Date('2026-11-11T07:00:06.123Z')));
+  assert.throws(() => backupFileName(new Date('invalid')));
+});
+
+test('Sync route remains compatible with existing progress export', () => {
+  assert.equal(normalizeProgress({...defaultProgress(),lastRoute:'#/sync'}).lastRoute, '#/sync');
 });

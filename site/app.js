@@ -1,7 +1,7 @@
 import {
   COURSE_LINKS, SCENARIOS, TEACHER_DIST, STORAGE_KEY,
   studentDistribution, klDivergence, klLogitGradient,
-  runHarness, defaultProgress, normalizeProgress,
+  runHarness, defaultProgress, normalizeProgress, backupFileName,
 } from './logic.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -18,6 +18,7 @@ const icons = {
   flask:'<path d="M9 3h6M10 3v7l-5.6 8.7A2 2 0 0 0 6.1 22h11.8a2 2 0 0 0 1.7-3.3L14 10V3"/><path d="M8 16h8"/>',
   network:'<rect x="2" y="2" width="7" height="7" rx="1"/><rect x="15" y="15" width="7" height="7" rx="1"/><path d="M8 8l8 8M16 4h6v6M6 14v8h8"/>',
   journal:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M8 7h8M8 11h8M8 15h5"/>',
+  sync:'<path d="M8 7h8m-3-3 3 3-3 3M16 17H8m3-3-3 3 3 3"/><path d="M4 4h3M20 20h-3"/>',
   arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
   download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>',
 };
@@ -25,7 +26,7 @@ const svg = (name) => `<svg aria-hidden="true" viewBox="0 0 24 24" width="18" he
 
 const nav = [
   ['home','Home','首页'],['learn','Learn','交互课程'],['lab','Lab','实验工作室'],
-  ['atlas','Atlas','知识航图'],['journal','Journal','学习记录'],
+  ['atlas','Atlas','知识航图'],['journal','Journal','学习记录'],['sync','Sync','协作与备份'],
 ];
 
 let progress;
@@ -82,7 +83,8 @@ function home() {
       ${moduleCard({tag:'机制补桥',icon:'∂',title:'KL 散度与知识蒸馏',text:'直接调整学生概率，观察损失和梯度。先预测，再验证“学生该往哪里更新”。',href:'#/learn/kl',foot:'Model Fundamentals',color:'blue'})}
     </div>
     ${section('工作台的三个承诺','不把页面浏览算作真正掌握')}
-    <div class="grid3"><div class="card"><div class="type-icon">01</div><h3>先理解</h3><p>从清晰的问题与原始课程材料出发。你可以独立探索，也可以直接看解释。</p></div><div class="card"><div class="type-icon warm">02</div><h3>亲自构造</h3><p>课程原作业与实验工作台相互补充。可运行结果不等同于机制理解。</p></div><div class="card"><div class="type-icon blue">03</div><h3>带走能力</h3><p>记录预测、修订和陌生变化，不用装饰性的掌握百分比代替证据。</p></div></div>`;
+    <div class="grid3"><div class="card"><div class="type-icon">01</div><h3>先理解</h3><p>从清晰的问题与原始课程材料出发。你可以独立探索，也可以直接看解释。</p></div><div class="card"><div class="type-icon warm">02</div><h3>亲自构造</h3><p>课程原作业与实验工作台相互补充。可运行结果不等同于机制理解。</p></div><div class="card"><div class="type-icon blue">03</div><h3>带走能力</h3><p>记录预测、修订和陌生变化，不用装饰性的掌握百分比代替证据。</p></div></div>
+    <div class="light-panel" style="margin-top:22px"><h3>从其他学习对话继续建设</h3><p>其他 ChatGPT 对话可以通过 GitHub 提交课程组件；个人笔记则只进入私有备份。<a class="source-link" href="#/sync">查看协作与备份方式 →</a></p></div>`;
 }
 function learnIndex() {
   return `<p class="eyebrow">CURATED LEARNING</p><h1 class="page-title">交互课程</h1><p class="lead">成熟课程负责连续教学。这个平台负责把必要的机制可视化、把困难拆解清楚，并把思考和实际作业连接起来。下面是可用试点，不是完整课程认证。</p><div class="grid2">
@@ -173,6 +175,38 @@ function renderNodeDetail(courses = new Map(atlas?.courses?.map(c=>[c.id,c]) || 
   ${sourceList.length?`<div class="step-tag" style="margin-top:16px">原始来源</div><p>${sourceList.map(s=>external(s.url,s.title)).join('<br>')}</p>`:''}
   <p class="tiny subtle" style="border-top:1px solid #e2e8e5;padding-top:14px;margin-top:18px">当前为旧 Atlas 迁移数据；尚未经过本站课程级复核。</p>`;
 }
+const CHAT_SYNC_PROMPT = [
+  '请把本次学习对话中已经确认、适合共享的教学成果集成到 GitHub 仓库 merlxn-ambrosius/learning-workbench，而不是给我一个 ZIP 或单独的 Markdown 文件。',
+  '先通过 GitHub 连接器实际读取该仓库的 README.md、AGENTS.md、PROJECT_STATE.md、DECISIONS.md、SYNC.md 和相关源码；不能只凭记忆推断当前版本。',
+  '保持成熟课程主干，不为了增加节点或界面而造课。从本次真实学习困难出发，优先复用现有解释、练习和交互组件。保留原始课程出处及版本，遵守版权。',
+  '只同步适合公开的课程、代码和教学实验；不要把我的个人笔记、私人对话、学习进度、未公开评价题、凭据或敏感内容放进公开仓库或公开 Issue。私有备份应进入单独的 private 仓库，且只在我明确提供数据并授权时操作。',
+  '把用户已确认的判断、AI 建议和未验证假设区分开。先检查现有实现，创建独立分支，完成最小有用变更，运行可执行测试并实测能测的交互，然后创建 PR；不要直接覆盖 main。',
+  '最后给我 PR 链接、改动内容、实测证据与未验证项。只有合并后，GitHub Pages 才会自动更新。若当前对话没有足够可公开的成果或 GitHub 不可用，请如实说明，不要假装已同步。',
+].join('\n\n');
+
+function syncPage() {
+  return `<p class="eyebrow">SHARED BUILD · PRIVATE PROGRESS</p><h1 class="page-title">协作与备份</h1>
+  <p class="lead">课程更新走公开 GitHub Pull Request，个人学习记录走私有仓库。两条通道刻意分开；一个对话不会自动读取另一个对话的历史。</p>
+  <div class="grid2">
+    <article class="card"><div class="step-tag">PUBLIC · 教学与代码</div><h3>让另一个学习 Chat 更新平台</h3>
+      <p>在那个对话中打开 GitHub 连接，给出下面的协作指令。它会先检查仓库现状，然后以分支和 PR 方式提交实际成果。审核并合并 PR 后，网站才会部署新内容。</p>
+      <p><a class="source-link" target="_blank" rel="noopener noreferrer" href="https://github.com/merlxn-ambrosius/learning-workbench">公开课程仓库 ↗</a></p>
+      <label class="field-label" for="chat-sync-instructions">复制到其他学习对话（可按任务调整）</label>
+      <textarea class="sync-instructions" id="chat-sync-instructions" readonly aria-label="跨对话 GitHub 协作指令">${escapeHtml(CHAT_SYNC_PROMPT)}</textarea>
+      <div class="actions" style="margin-top:13px"><button id="copy-sync-prompt" class="btn btn-primary btn-small" type="button">复制协作指令</button>
+      <a class="btn btn-outline btn-small" target="_blank" rel="noopener noreferrer" href="https://github.com/merlxn-ambrosius/learning-workbench/blob/main/SYNC.md">查看完整流程 ↗</a></div></article>
+    <article class="card"><div class="step-tag">PRIVATE · 个人记录</div><h3>备份到私人 GitHub 仓库</h3>
+      <p>当前网站不会上传浏览器记录。先到 Journal 导出 JSON，然后把文件上传到你自己的 <strong>private</strong> 仓库；需要恢复时，下载该文件并从 Journal 导入。</p>
+      <div class="sync-steps"><p><b>1.</b> <a class="source-link" href="#/journal">Journal → 导出我的记录</a></p>
+      <p><b>2.</b> 在 GitHub 新建 private 仓库 <code>learning-workbench-private</code>，不要启用 Pages</p>
+      <p><b>3.</b> 仓库中的 <b>Add file → Upload files</b> 上传 JSON；不同日期的备份分别保留</p>
+      <p><b>4.</b> 授权连接的 GitHub App 访问该仓库后，其他对话也可在你明确提供备份文件时协助整理</p></div>
+      <div class="actions"><a class="btn btn-outline btn-small" target="_blank" rel="noopener noreferrer" href="https://github.com/new">创建私人仓库 ↗</a><a class="btn btn-outline btn-small" href="#/journal">打开 Journal ↗</a></div>
+      <p class="tiny subtle" style="margin-top:19px">Private 表示限制访问，不等于端到端加密。不要提交 API Key、密码或其他秘密；不要把 private 备份复制进公开仓库。未来如需真正一键同步，应另外设计安全授权和冲突处理，不能把 Token 写进公开前端。</p>
+    </article>
+  </div>`;
+}
+
 function journal() {
   const evidence = [...progress.evidence].reverse();
   const firstDate = date=>{try{return new Date(date).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return date;}};
@@ -182,7 +216,7 @@ function journal() {
     <div class="field"><label for="note-kl">模型与梯度</label><textarea data-note="kl" id="note-kl" placeholder="今天最关键的推导或反例…">${escapeHtml(progress.notes.kl)}</textarea></div>
     <div class="field"><label for="note-general">其他想法</label><textarea data-note="general" id="note-general" placeholder="下一次学习要从哪里继续？">${escapeHtml(progress.notes.general)}</textarea></div><div id="save-status" class="status-line" role="status">修改后自动保存到本地浏览器</div></div>
     <div class="card"><div class="step-tag">LEARNING EVIDENCE</div><h3>最近的预测与实验</h3>${evidence.length?`<ul class="timeline">${evidence.map(item=>`<li><span class="timeline-dot"></span><div class="detail"><b>${escapeHtml(item.kind)}</b> · <small>${escapeHtml(firstDate(item.date))}</small><p>${escapeHtml(item.summary)}</p><small>帮助条件：${escapeHtml(item.help)}</small></div></li>`).join('')}</ul>`:'<div class="empty">还没有实验记录。打开 Lab，做一次预测或观察，学习事件就会出现在这里。</div>'}</div>
-    </section><aside class="stack lesson-side"><div class="card"><h3>数据备份</h3><p>导出 JSON 可备份和迁移。导入之前会提示确认，以免覆盖现有记录。</p><div class="actions"><button id="export-progress" class="btn btn-primary btn-small">${svg('download')} 导出我的记录</button><button id="import-progress" class="btn btn-outline btn-small">导入备份</button><input id="import-file" type="file" accept=".json,application/json" hidden /></div></div>
+    </section><aside class="stack lesson-side"><div class="card"><h3>数据备份</h3><p>导出 JSON 可备份和迁移。导入之前会提示确认，以免覆盖现有记录。若要保存到 GitHub，请使用额外的 private 仓库。</p><div class="actions"><button id="export-progress" class="btn btn-primary btn-small">${svg('download')} 导出我的记录</button><button id="import-progress" class="btn btn-outline btn-small">导入备份</button><input id="import-file" type="file" accept=".json,application/json" hidden /></div><p style="margin-top:12px"><a class="source-link" href="#/sync">怎样备份到 private 仓库，以及让其他 Chat 同步课程 →</a></p></div>
       <div class="warning-panel"><strong>隐私说明</strong><p>本网站没有注册、数据库、分析脚本和第三方 AI 调用。浏览器数据并不自动同步到 GitHub。公开网站意味着课程页面可以被其他人访问，但个人笔记不会因此被上传。</p></div>
       <div class="card"><h3>三种不同证据</h3><p><strong>AI 协作：</strong>借助工具完成的作品。</p><p><strong>独立解释：</strong>本人能预测、推导和修改。</p><p><strong>陌生变化：</strong>面对新题仍能迁移。</p><p>本站目前只记录形成性事件，不自动认证任何一种能力。</p></div></aside></div>`;
 }
@@ -191,7 +225,7 @@ function render() {
   const body = route==='home'?home():
     route==='learn'?learnIndex():route==='learn/agent'?learnAgent():route==='learn/kl'?learnKL():
     route==='lab'?labIndex():route==='lab/agent'?labAgent():route==='lab/kl'?labKL():
-    route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():home();
+    route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():home();
   $('#app').innerHTML = shell(route,body);
   if (/^(learn\/(agent|kl)|lab\/(agent|kl)|atlas\/node\/)/.test(route)) {
     progress.lastRoute=`#/${route}`;persist();
@@ -223,7 +257,7 @@ document.addEventListener('change', event=>{
   if(el.id==='atlas-route') {session.atlasRoute=el.value;const list=$('#atlas-nodes');if(list)list.innerHTML=renderNodeList();}
   if(el.id==='import-file' && el.files?.length) importBackup(el.files[0]);
 });
-document.addEventListener('click', event=>{
+document.addEventListener('click', async event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.id==='agent-save') {
     const answer=$('#agent-prediction')?.value;
@@ -256,13 +290,24 @@ document.addEventListener('click', event=>{
     render();
   }
   if(button.id==='kl-reset') {session.studentCat=95;render();}
+  if(button.id==='copy-sync-prompt') {
+    try {
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard API unavailable');
+      await navigator.clipboard.writeText(CHAT_SYNC_PROMPT);
+      showToast('协作指令已复制。到其他学习对话中粘贴即可。');
+    } catch {
+      const field=$('#chat-sync-instructions');
+      if(field){field.focus();field.select();}
+      showToast('未能自动复制，请手动复制已选中的文字。');
+    }
+  }
   if(button.id==='export-progress')exportBackup();
   if(button.id==='import-progress')$('#import-file')?.click();
 });
 function exportBackup(){
   const blob=new Blob([JSON.stringify(progress,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const link=document.createElement('a');
-  link.href=url;link.download=`learn-progress-${new Date().toISOString().slice(0,10)}.json`;
+  link.href=url;link.download=backupFileName();
   document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
   showToast('学习记录备份已生成。请保存在可信的位置。');
 }
