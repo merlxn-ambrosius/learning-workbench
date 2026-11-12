@@ -1,4 +1,4 @@
-import { renderWorkspaceShell, workbenchIndex, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
+import { renderWorkspaceShell, platformPage, resultList, bindKnowledgeGraph, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
 import { renderAgentGuide, renderAgentLab, agentPolicyNames, agentScenarioNames } from './agent-view.mjs';
 import { renderKLGuide, renderKLLab, renderKLExplanation, renderKLMetrics, klAnswerNames } from './kl-view.mjs';
 import { escapeHtml, external, svg } from './html.mjs';
@@ -40,6 +40,9 @@ function showToast(message) {
 function getPath() {
   const path = location.hash.replace(/^#\/?/,'').replace(/\?.*$/,'');
   return path || 'home';
+}
+function routeOptions() {
+  return new URLSearchParams(location.hash.split('?')[1] || '');
 }
 function atlasIndex() {
   if (!atlas) {
@@ -167,15 +170,18 @@ function journal() {
 function render() {
   const route = getPath();
   if ((route === 'atlas' || route.startsWith('atlas/node/')) && atlasStatus === 'idle') loadAtlas();
-  const body = ['home','learn','lab'].includes(route) ? workbenchIndex(route, progress.lastRoute, atlas, escapeHtml) :
+  const options = routeOptions();
+  const platform = platformPage(route, progress.lastRoute, atlas, options);
+  const body = platform ?? (
     route==='learn/micrograd'?microgradPage():route==='learn/agent'?renderAgentGuide():route==='learn/kl'?renderKLGuide():
     route==='lab/agent'?renderAgentLab(progress.agent, progress.notes.agent, progressStore.warning):route==='lab/kl'?renderKLLab({
       savedAnswer:progress.decisions.klPrediction, studentCat:session.studentCat,
       revealed:session.klRevealed, storageWarning:progressStore.warning,
     }):
-    route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():missingPage();
+    route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():missingPage());
   const storageNotice = `<p class="warning-panel" id="storage-notice" role="status" ${progressStore.warning ? '' : 'hidden'}>${escapeHtml(progressStore.warning)}</p>`;
-  $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + body);
+  $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + body, document.querySelector('meta[name="learn-revision"]')?.content);
+  if (route.startsWith('course/') || route.startsWith('block/')) bindKnowledgeGraph($('#page-content'));
   if (route === 'learn/micrograd') {
     mountMicrograd($('.mg-unit'), progress.micrograd, next => {
       progress.micrograd = next;
@@ -191,8 +197,29 @@ function render() {
   document.title = `${routeTitle(route, atlas)} · LEARN Workbench`;
 }
 
+function filterCatalog(input) {
+  const results = $('#catalog-results');
+  if (!results) return;
+  const q = input.value.slice(0,150);
+  results.innerHTML = resultList(q, results.dataset.subject);
+  const options = routeOptions();
+  if (q) options.set('q',q); else options.delete('q');
+  const query = options.toString();
+  history.replaceState(null,'','#/' + getPath() + (query ? '?' + query : ''));
+}
+document.addEventListener('submit', event => {
+  if (event.target.id !== 'catalog-search-form') return;
+  event.preventDefault();
+  const input = $('#catalog-query');
+  if (getPath() === 'home') {
+    location.hash = '/courses' + (input.value.trim() ? '?q=' + encodeURIComponent(input.value.trim()) : '');
+  } else {
+    filterCatalog(input);
+  }
+});
 document.addEventListener('input', event=>{
   const el=event.target;
+  if (el.id === 'catalog-query' && getPath() !== 'home') filterCatalog(el);
   if (el.matches('[data-note]')) {
     progress.notes[el.dataset.note]=el.value.slice(0,NOTE_LIMIT);
     const ok = persist();
@@ -337,10 +364,22 @@ document.addEventListener('toggle', event=>{
   progress.agent[key]=event.target.open;
   persist();
 }, true);
+function focusLinkedSection() {
+  const id = routeOptions().get('section');
+  if (!id || !isLearningUnit(getPath()) || !/^[a-z][a-z0-9-]{1,80}$/.test(id)) return false;
+  const target = document.getElementById(id);
+  if (!target || !target.closest('#page-content')) return false;
+  target.setAttribute('tabindex','-1');
+  target.focus({preventScroll:true});
+  target.scrollIntoView({block:'start'});
+  return true;
+}
 window.addEventListener('hashchange', () => {
   render();
-  $('#page-content')?.focus?.({preventScroll:true});
-  window.scrollTo({top:0, behavior:'instant'});
+  if (!focusLinkedSection()) {
+    $('#page-content')?.focus?.({preventScroll:true});
+    window.scrollTo({top:0, behavior:'instant'});
+  }
 });
 
 // Atlas is optional. A slow/offline catalogue must never block a lesson or
@@ -363,3 +402,4 @@ async function loadAtlas() {
   if (path === 'atlas' || path.startsWith('atlas/node/')) render();
 }
 render();
+focusLinkedSection();

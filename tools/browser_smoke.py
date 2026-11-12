@@ -8,6 +8,7 @@ import argparse
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -29,7 +30,8 @@ def check_chinese_heading_font(context, page):
         document = session.send("DOM.getDocument")["root"]["nodeId"]
         heading = session.send("DOM.querySelector", {"nodeId": document, "selector": "#workbench-title"})["nodeId"]
         fonts = session.send("CSS.getPlatformFontsForNode", {"nodeId": heading})["fonts"]
-        assert any("Noto Sans CJK" in font["familyName"] and font["glyphCount"] >= 8 for font in fonts), fonts
+        han = len(re.findall(r"[\u3400-\u9fff]", page.locator("#workbench-title").inner_text()))
+        assert han and sum(f["glyphCount"] for f in fonts if "Noto Sans CJK" in f["familyName"]) >= han, fonts
     finally:
         session.detach()
 
@@ -42,7 +44,7 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(base + "#/home")
-            expect(page.locator(".study-row")).to_have_count(3)
+            expect(page.locator(".subject-card")).to_have_count(6)
             expect(page.locator(".resume-link")).to_have_count(0)
 
             def check_width():
@@ -60,7 +62,26 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             expect(page.locator("#page-content")).to_be_focused()
             assert page.url.endswith("#/home")
 
-            page.locator('.study-row a[href="#/lab/agent"]').click()
+            page.locator('.subject-card[href="#/subject/ai"]').click()
+            expect(page.get_by_role("heading", level=1)).to_have_text("人工智能")
+            page.locator('#catalog-query').fill('CS329Z')
+            expect(page.locator('#catalog-results .course-row')).to_have_count(1)
+            page.locator('.subject-maps a[href^="#/block/agents"]').click()
+            target = page.locator('[data-kg-node="agent"]')
+            target.focus()
+            page.keyboard.press("Enter")
+            expect(target).to_have_attribute("aria-pressed","true")
+            check_width()
+            if screenshots:
+                page.screenshot(path=screenshots / f"block-{width}.png", full_page=True)
+            page.locator('.kg-detail:visible .kg-open').click()
+            expect(page).to_have_url(re.compile(r'#/course/agent'))
+            page.locator('[data-kg-node="experiment"]').click()
+            expect(page.locator('.kg-detail:visible')).to_contain_text("处理规则")
+            check_width()
+            if screenshots:
+                page.screenshot(path=screenshots / f"course-{width}.png", full_page=True)
+            page.locator('.kg-detail:visible .kg-open').click()
             page.locator("#agent-policy").select_option("drop")
             page.locator("#agent-run").click()
             expect(page.locator("#agent-result")).to_be_focused()
@@ -69,6 +90,21 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             page.locator('nav a[href="#/home"]').click()
             expect(page.locator(".resume-link")).to_have_attribute("href", "#/lab/agent")
 
+            page.locator("#catalog-query").fill("ＫＬ")
+            page.locator("#catalog-search-form button").click()
+            expect(page.locator("#catalog-results .course-row")).to_have_count(1)
+            page.locator("#catalog-results h3 a").click()
+            expect(page).to_have_url(re.compile(r'#/course/kl'))
+            page.goto(base + "#/subject/physics")
+            expect(page.locator(".catalog-empty")).to_contain_text("还没有收录课程")
+            page.goto(base + "#/course/micrograd?node=build")
+            page.locator('.kg-detail:visible .kg-open').click()
+            expect(page.locator('#mg-build-title')).to_be_focused()
+
+            page.goto(base + "#/block/foundations")
+            check_width()
+            if screenshots:
+                page.screenshot(path=screenshots / f"foundations-{width}.png", full_page=True)
             page.goto(base + "#/learn/kl")
             details = page.locator("[data-kl-guide-help]")
             assert not details.evaluate("el => el.open")
@@ -127,6 +163,12 @@ def exercise_preview(browser, scratch):
         page = context.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(output.as_uri() + "#/home")
+        page.locator('.subject-card[href="#/subject/ai"]').click()
+        page.locator('.subject-maps a[href^="#/block/agents"]').click()
+        page.locator('[data-kg-node="agent"]').click()
+        page.locator('.kg-detail:visible .kg-open').click()
+        expect(page.get_by_role("heading", level=1)).to_have_text("Agent 工程入门")
         page.goto(output.as_uri() + "#/learn/micrograd")
         page.locator("#mg-measure").click()
         expect(page.locator("#mg-results")).to_be_visible()
@@ -146,6 +188,7 @@ def exercise_preview(browser, scratch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
+    parser.add_argument("--site-dir", type=Path, default=SITE, help="Serve this prepared release directory, or the source site by default.")
     parser.add_argument("--verify-cjk-font", action="store_true", help="Require Noto CJK glyphs in the Chinese heading.")
     args = parser.parse_args()
     if args.screenshots:
@@ -155,7 +198,7 @@ if __name__ == "__main__":
         parser.exit(1, "Install Google Chrome or Chromium before running this check.\n")
     with TemporaryDirectory() as scratch, sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=chrome)
-        handler = partial(SimpleHTTPRequestHandler, directory=SITE)
+        handler = partial(SimpleHTTPRequestHandler, directory=args.site_dir)
         with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()

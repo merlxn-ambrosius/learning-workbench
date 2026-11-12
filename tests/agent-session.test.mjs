@@ -36,7 +36,7 @@ async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
     body:{appendChild(node){elements.set(node.id,node)}},
   };
   const context = vm.createContext({
-    ...logic, ...workspace, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,
+    ...logic, ...workspace, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,URLSearchParams,
     location:{hash:route},
     localStorage:{getItem(){return storage},setItem(key,value){if(blocked)throw new Error('blocked');storage=value}},
     confirm:()=>true,

@@ -2,7 +2,11 @@
 
 [打开学习工作台](https://merlxn-ambrosius.github.io/learning-workbench/) · [项目现状](PROJECT_STATE.md) · [重构审查与待定事项](REVIEW.md)
 
-LEARN 的教学试验平台。遇到一个具体问题时，可以直接实验、先读解释，或回到原课程继续做作业。学习记录保存在当前浏览器，支持手动导出和恢复。
+从[学科探索](https://merlxn-ambrosius.github.io/learning-workbench/#/home)按领域进入，也可以在[课程目录](https://merlxn-ambrosius.github.io/learning-workbench/#/courses)搜索。知识图谱分为板块图和课内图：前者连接课程，后者连接具体材料与活动。点选一个节点，可查看需要哪些知识、为什么有用、可以继续学什么。跨学科课程共用一个地址，最多三个学科标签。物理学与工程学已预留入口，有内容后再开放活动。
+
+公开站点在页脚显示当前部署提交号。下载的旧预览保留生成时的内容。站内学习记录属于当前浏览器，支持手动导出和恢复。
+
+### 已有的站内活动
 
 | 问题 | 在工作台能做什么 | 原材料 |
 | --- | --- | --- |
@@ -34,7 +38,7 @@ python3 tools/make_preview.py /tmp/LEARN-Workbench.html
 
 - 机械计算、存储恢复、路由和离线包有自动化回归。真实浏览器走查使用 Python Playwright 和 Chrome，见 [browser_smoke.py](tools/browser_smoke.py)。这两项只用于开发检查。
 - 跨对话贡献和备份操作见 [SYNC.md](SYNC.md)。LEARN 统筹平台的教学方向、交互和验收；贡献者通过 PR 汇入，产品取舍记入 [DECISIONS.md](DECISIONS.md)。
-- GitHub Actions 验证 PR。合并至默认分支后，Pages 发布 `site/`。本仓库无需从头配置 Pages。
+- GitHub Actions 验证 PR。合并至默认分支后，Pages 发布从 `site/` 生成的带版本资源，再从公开网址校验入口和资源。本仓库无需从头配置 Pages。
 - 笔记使用浏览器键 `learn-workbench.progress.v1`。清理浏览器或迁移设备前，请导出 JSON。导入需确认，会替换当前记录。仓库和站点均不接收个人笔记、私密题库或凭据。
 
 项目代码使用 [MIT License](LICENSE)。外部课程、论文、作业和品牌各有其权利归属。
