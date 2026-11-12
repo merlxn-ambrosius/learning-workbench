@@ -1,3 +1,4 @@
+import {addStudyUnits} from './study-index.mjs';
 // Source attribution and physical PDF coordinates are for the author's July 3, 2018 draft.
 // Workbench's goals, exercise fixtures, solutions and dependency judgments are original.
 const bookUrl = 'https://cses.fi/book/book.pdf';
@@ -161,7 +162,7 @@ const chapters = [
   },
   {
     chapter: 7, title: "动态规划", printedPage: 65,
-    description: "明确定义一个状态代表哪些历史，再用相互独立、覆盖完整的来源计算答案。",
+    description: "判断哪些历史可以共用一个状态，按依赖顺序计算。遇到计数时，检查每个方案是否恰好算了一次。",
     keywords: "DP LIS 背包 编辑距离 轮廓",
     sections: [
       [65, 304, "找零的不同目标", "分别写出最少枚数和有序、无序计数的状态定义。"],
@@ -782,6 +783,7 @@ export const handbookCourses = chapters.map(ch => {
     href: 'https://cses.fi/problemset/task/' + ch.judge[0] + '/', status: 'external',
   });
   const lessonEdges = ch.links.map(([from, to, reason]) => ({ from, to, kind: 'recommended', reason }));
+  addStudyUnits(ch.chapter, lessons, lessonEdges);
   return {
     id, title: ch.title, description: ch.description, chapter: ch.chapter, part, printedPage: ch.printedPage,
     keywords: '算法 竞技编程 competitive programming CPH 第' + ch.chapter + '章 ' + ch.keywords,

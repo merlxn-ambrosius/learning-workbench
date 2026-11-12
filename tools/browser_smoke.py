@@ -2,7 +2,7 @@
 """Exercise real browser journeys with synthetic records in disposable profiles.
 
 Developer/CI only: install playwright==1.62.0 and Google Chrome or Chromium.
-Run from any directory. --screenshots DIR captures the three clean home layouts.
+Run from any directory. --screenshots DIR captures the tested site layouts.
 """
 import argparse
 from functools import partial
@@ -34,6 +34,83 @@ def check_chinese_heading_font(context, page):
         assert han and sum(f["glyphCount"] for f in fonts if "Noto Sans CJK" in f["familyName"]) >= han, fonts
     finally:
         session.detach()
+
+
+def exercise_study_reader(page, base, width, screenshots, check_width):
+    shelf = page.locator(".study-shelf")
+    if width == 1280:
+        for slug, title in [("shortest-paths", "最短路径"), ("dynamic-programming", "动态规划"),
+                            ("segment-tree", "线段树"), ("bit-manipulation", "位运算")]:
+            page.goto(base + "#/block/algorithms")
+            shelf.locator(f'a[href="#/topic/{slug}"]').click()
+            expect(page.locator(".study-subject")).to_have_text(title)
+            expect(page.locator(".study-pseudo code")).to_be_visible()
+            expect(page.locator(".study-solution code")).to_be_hidden()
+            expect(page.locator(".study-judges .study-task").first).to_have_attribute("href", re.compile("^https://"))
+
+    if width == 390:
+        return
+    # Entry via the original chapter and its topic affordance, then choose a
+    # reading mode and follow an actual relationship to another subject.
+    page.goto(base + "#/course/cph-07")
+    page.locator("[data-study-link]").first.click()
+    expect(page.locator(".study-subject")).to_have_text("动态规划")
+    overview_hash = "#/topic/dynamic-programming/knapsack"
+    if width == 320:
+        page.locator("[data-study-select]").select_option(overview_hash)
+    else:
+        page.locator(f'.study-outline a[href="{overview_hash}"]').click()
+    expect(page).to_have_url(base + overview_hash)
+    solution = page.locator(".study-solution")
+    expect(solution).to_have_js_property("open", False)
+    if screenshots:
+        page.locator(".study-header").scroll_into_view_if_needed()
+        page.screenshot(path=screenshots / f"study-overview-{width}.png")
+    solution.locator("summary").click()
+    expect(solution.locator("code")).to_contain_text("best_pack")
+    check_width()
+    if screenshots:
+        solution.locator("summary").evaluate("el => el.scrollIntoView({block:'start'})")
+        page.screenshot(path=screenshots / f"study-implementation-{width}.png")
+    page.locator(".study-tabs").get_by_role("link", name="证明与边界").click()
+    proof_url = base + overview_hash + "?view=proof"
+    expect(page).to_have_url(proof_url)
+    page.reload()
+    expect(page.locator(".study-proof li").first).to_be_visible()
+    expect(page.get_by_role("heading", name="适用边界")).to_be_visible()
+    expect(page.locator(".study-solution")).to_have_count(0)
+    check_width()
+    page.locator('.study-related a[href="#/topic/bit-manipulation/parallel-bits"]').click()
+    expect(page.locator(".study-subject")).to_have_text("位运算")
+    page.go_back()
+    expect(page).to_have_url(proof_url)
+    expect(page.locator(".study-proof li").first).to_be_visible()
+    page.locator(".study-switch").click()
+    expect(solution).to_have_js_property("open", False)
+    if width != 1280:
+        return
+
+    # Both programs have the same first witnessed route; only a frontier bound
+    # can justify stopping. Read the final value as well as completion feedback.
+    page.goto(base + "#/topic/shortest-paths/bidirectional")
+    lab = page.locator("[data-frontiers]")
+    advance = lab.locator("[data-next]")
+    trace = lab.locator("[data-trace]")
+    for edge_cost, optimal_cost in [(10, 9), (8, 8)]:
+        lab.locator("[data-weight]").select_option(str(edge_cost))
+        expect(lab.locator("[data-prev]")).to_be_disabled()
+        advance.click()
+        expect(trace.locator("strong").last).to_have_text(str(edge_cost))
+        expect(trace).to_contain_text("已有一条路线")
+        for _ in range(8):
+            if not advance.is_enabled():
+                break
+            advance.click()
+        expect(advance).to_be_disabled()
+        expect(trace).to_contain_text("可以停止")
+        expect(trace.locator("strong").last).to_have_text(str(optimal_cost))
+        lab.locator("[data-prev]").click()
+        expect(advance).to_be_enabled()
 
 
 def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
@@ -155,6 +232,27 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             page.locator('[data-uv-scope]').select_option('algorithms')
             page.locator('[data-uv-locate]').select_option('cph-09')
             expect(page.locator('[data-uv-inspector]')).to_contain_text('区间')
+            if width in (320, 1280):
+                opener = page.locator("[data-uv-immersive]")
+                dialog = page.locator("[data-uv-dialog]")
+                embedded = chart.bounding_box()
+                opener.click()
+                expect(dialog).to_be_visible()
+                expanded = dialog.locator("[data-uv-stage]").bounding_box()
+                assert expanded["width"] * expanded["height"] > embedded["width"] * embedded["height"], (
+                    f"Immersive canvas must grow at {width}px: {embedded} -> {expanded}"
+                )
+                expect(dialog.locator("[data-uv-locate]")).to_have_value("cph-09")
+                expect(dialog.locator("[data-uv-close]")).to_be_focused()
+                if screenshots:
+                    page.screenshot(path=screenshots / f"immersive-{width}.png")
+                if width == 320:
+                    dialog.locator("[data-uv-close]").click()
+                else:
+                    page.keyboard.press("Escape")
+                expect(dialog).to_be_hidden()
+                expect(opener).to_be_focused()
+                expect(page.locator("[data-uv-locate]")).to_have_value("cph-09")
             page.locator('[data-uv-expand]').click()
             expect(page.locator('[data-uv-child]').first).to_be_visible()
             page.locator('[data-uv-action="collapse"]').click()
@@ -232,8 +330,9 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
                 page.reload()
                 expect(note).to_have_value("合成测试 · 原稿")
 
+            exercise_study_reader(page, base, width, screenshots, check_width)
             assert not errors, errors
-            print(f"{width}px: catalogue, keyboard, resume, Agent, KL, Atlas, Journal passed.")
+            print(f"{width}px: platform, study reader, map and recovery journeys passed.")
 
 
 def exercise_preview(browser, scratch):
@@ -259,10 +358,16 @@ def exercise_preview(browser, scratch):
             path = scratch / name
             saved.value.save_as(path)
             assert path.read_bytes() == (SITE / "materials/micrograd" / name).read_bytes()
+        page.goto(output.as_uri() + "#/topics")
+        page.locator('.study-shelf a[href="#/topic/segment-tree"]').click()
+        expect(page.locator(".study-subject")).to_have_text("线段树")
+        page.locator(".study-tabs").get_by_role("link", name="证明与边界").click()
+        expect(page.locator(".study-proof li").first).to_be_visible()
+        expect(page.locator('.study-judges .study-task').first).to_have_attribute('href', re.compile('^https://'))
         page.goto(output.as_uri() + "#/atlas")
         expect(page.locator('#atlas-nodes a[href="#/atlas/node/F01"]')).to_be_visible()
         assert not errors, errors
-        print("Offline file: measured micrograd, downloaded both original starters, opened Atlas.")
+        print("Offline file: measured micrograd, downloaded both original starters, opened the segment-tree proof and Atlas.")
 
 
 if __name__ == "__main__":
