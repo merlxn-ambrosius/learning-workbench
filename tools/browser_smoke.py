@@ -49,7 +49,13 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
 
             def check_width():
                 fits = page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
-                assert fits, f"Horizontal overflow at {width}px: {page.url}"
+                if not fits:
+                    offenders = page.evaluate("""() => Array.from(document.querySelectorAll('body *'))
+                        .filter(el => el instanceof HTMLElement && el.getBoundingClientRect().right > innerWidth + 1)
+                        .map(el => [el.tagName, el.className, Math.round(el.getBoundingClientRect().right)]).slice(0,20)""")
+                    if screenshots:
+                        page.screenshot(path=screenshots / f"overflow-{width}.png", full_page=True)
+                    raise AssertionError(f"Horizontal overflow at {width}px: {page.url} {offenders}")
 
             check_width()
             if verify_cjk_font:

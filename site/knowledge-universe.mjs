@@ -291,7 +291,7 @@ function bindOne(host) {
     caption.textContent=expanded ? current.title+' · 课内展开' : current ? where+' / '+current.title : where;
     const edgeCount=edgeEls.filter(({edge})=>visible.has(edge.from)&&visible.has(edge.to)).length;
     count.textContent=expanded ? subPositions.size+' 个课内节点' : visible.size+' 门课程 · '+edgeCount+' 条关系';
-    host.dataset.uvScope=scope;host.dataset.uvSelected=selection;host.dataset.uvExpanded=String(expanded);
+    host.dataset.uvActiveScope=scope;host.dataset.uvSelected=selection;host.dataset.uvExpanded=String(expanded);
   }
   function viewportFit(ids) {
     const world=[...ids].map(id=>positions.get(id)).filter(Boolean);

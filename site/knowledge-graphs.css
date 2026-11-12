@@ -48,6 +48,7 @@
 .kg-stage { height: var(--wide-height); margin-block: auto; position: relative; }
 .kg-edges { pointer-events: none; position: absolute; inset: 0; width: 100%; height: 100%; }
 .kg-edges-compact { display: none; }
+.kg[data-kg-dense] .kg-diagram { overflow-x: auto; }
 .kg-edge { fill: none; stroke: #6b7d98; stroke-width: 1.4; }
 .kg-edge.kg-recommended { stroke-dasharray: 4 3; }
 .kg-edge.kg-neighbour { stroke: var(--kg-blue); stroke-width: 2; }
@@ -130,7 +131,7 @@
   .kg-back { display: inline-block; min-height: 32px; }
 }
 @container (max-width: 570px) {
-  .kg-stage { height: var(--small-height); }
+  .kg-stage { height: var(--small-height); min-width: var(--small-min-width); }
   .kg-edges-wide { display: none; }
   .kg-edges-compact { display: block; }
   .kg-node {

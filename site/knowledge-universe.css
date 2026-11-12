@@ -1,8 +1,8 @@
 .uv { --night:#0a1124;--uv-blue:#8eafff;--uv-tint:#e0e9ff;--uv-text:#25344f; margin:1rem 0 1.8rem; min-width:0; color:var(--uv-text); }
 .uv * { box-sizing:border-box; }
 .uv-toolbar {display:flex;align-items:end;gap:.8rem 1.15rem;flex-wrap:wrap;margin:0 0 .85rem;}
-.uv-toolbar label {display:grid;gap:.27rem;color:#42536e;font-size:.77rem;font-weight:650;min-width:0;}
-.uv-toolbar select {color:#263a60;background:white;border:1px solid #aab7ce;border-radius:5px;min-height:37px;font:inherit;font-size:.86rem;padding:.36rem 1.6rem .36rem .55rem;max-width:100%;}
+.uv-toolbar label {display:grid;grid-template-columns:minmax(0,1fr);gap:.27rem;color:#42536e;font-size:.77rem;font-weight:650;min-width:0;}
+.uv-toolbar select {min-width:0;width:100%;color:#263a60;background:white;border:1px solid #aab7ce;border-radius:5px;min-height:37px;font:inherit;font-size:.86rem;padding:.36rem 1.6rem .36rem .55rem;max-width:100%;}
 .uv-toolbar button,.uv-expand {border:1px solid #b3c2dc;color:#2c4778;background:white;border-radius:5px;padding:.45rem .7rem;font-size:.82rem;min-height:36px;}
 .uv-toolbar button:disabled {opacity:.55;cursor:default;}
 .uv-space {border:1px solid #243859;overflow:hidden;border-radius:12px;background:var(--night);}
@@ -48,6 +48,7 @@
 .uv-legend .uv-dash {border-top-style:dashed;}
 .uv-legend .uv-hint {margin-left:auto;color:#b0bfd7;}
 .uv-inspector {display:grid;grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,1fr));gap:1.25rem;padding:1.05rem .15rem .4rem;}
+.uv-inspector > * {min-width:0;overflow-wrap:anywhere;}
 .uv-inspector:has(.uv-empty) {display:block;padding:.65rem .1rem 0;}
 .uv-empty,.uv-rel p,.uv-detail-intro p {color:#4d5e78;font-size:.84rem;line-height:1.65;margin:.25rem 0;}
 .uv-detail-intro h3 {font-size:1.18rem;margin:0 0 .35rem;color:#22385e;}

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bindKnowledgeGraph, rankKnowledgeNodes, renderKnowledgeGraph } from '../site/knowledge-graphs.mjs';
+import { handbookCourses } from '../site/handbook-catalog.mjs';
 
 const nodes = [
   { id: 'apply', title: '实施', description: '亲自实现', status: 'available', href: '#/course/apply' },
@@ -50,6 +51,22 @@ test('external links and text are bounded, blank maps do not simulate data', () 
   assert.ok(html.includes('&lt;b&gt;概念&lt;/b&gt;'));
   assert.ok(!html.includes('javascript:') && !html.includes('箭头从准备指向后续'));
   assert.match(renderKnowledgeGraph({ ...graph, nodes: [], edges: [] }), /规划中/);
+});
+
+test('six parallel sections in the dynamic programming chapter have readable, separated mobile cards', () => {
+  const chapter = handbookCourses.find(course => course.id === 'cph-07');
+  const html = renderKnowledgeGraph({ ...chapter, type: 'course', nodes: chapter.lessons, edges: chapter.lessonEdges });
+  const minWidth = Number(html.match(/--small-min-width:([\d.]+)px/)[1]);
+  assert.ok(minWidth <= 280, 'both prerequisite ranks should fit on a phone');
+  const cards = new Map([...html.matchAll(/data-kg-node="([^"]+)"[^>]+--small-x:([\d.]+)%;--small-y:([\d.]+)px;--small-w:([\d.]+)%;--small-h:([\d.]+)px/g)]
+    .map(([, id, x, y, w, h]) => [id, { x: Number(x), y: Number(y), w: Number(w), h: Number(h) }]));
+  const peers = ['s1','s2','s3','s4','s5','s6'].map(id => cards.get(id));
+  assert.equal(new Set(peers.map(card => card.x)).size, 1);
+  peers.forEach((card, i) => {
+    assert.ok(card.w * minWidth / 100 >= 100, 'node title has room to wrap');
+    if (i) assert.ok(card.y - peers[i - 1].y >= card.h);
+  });
+  assert.ok(cards.get('exercise').x - peers[0].x > peers[0].w, 'subsequent rank has its own column');
 });
 
 test('a selection switches the inspector, highlights incident links and keeps the subject in its shareable URL', t => {
