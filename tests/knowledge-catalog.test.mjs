@@ -72,7 +72,7 @@ test('block and lesson DAGs have valid endpoints and explain directed relationsh
 
 test('catalogue states lead to distinct real activities, external material or a visibly empty planned course', () => {
   const legacyNodes = JSON.parse(readFileSync(new URL('../site/data/atlas.json', import.meta.url))).nodes;
-  const localActivities = new Set(['#/learn/agent', '#/lab/agent', '#/learn/kl', '#/lab/kl', '#/learn/micrograd']);
+  const localActivities = new Set(['#/learn/agent', '#/lab/agent', '#/learn/kl', '#/lab/kl', '#/learn/micrograd', '#/lab/range-queries']);
   const microgradSource = readFileSync(new URL('../site/micrograd-view.mjs', import.meta.url), 'utf8');
   for (const course of courses) {
     if (course.status === 'planned') {
@@ -91,7 +91,10 @@ test('catalogue states lead to distinct real activities, external material or a 
         assert.ok(legacyNodes.some(node => item.href === `#/atlas/node/${node.id}`));
       } else {
         const [route, query] = item.href.split('?');
-        assert.ok(localActivities.has(route), route);
+        if (route.startsWith('#/practice/')) {
+          assert.equal(route, '#/practice/'+course.id);
+          assert.ok(course.practice?.prompt && course.practice.accepted.length > 0);
+        } else assert.ok(localActivities.has(route), route);
         if (query) {
           const section = new URLSearchParams(query).get('section');
           assert.equal(route, '#/learn/micrograd');

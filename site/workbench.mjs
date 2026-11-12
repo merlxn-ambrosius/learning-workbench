@@ -1,6 +1,10 @@
 import { subjects, courses, blocks, coursesForSubject, blocksForSubject, searchCourses } from './knowledge-catalog.mjs';
 import { renderKnowledgeGraph, bindKnowledgeGraph } from './knowledge-graphs.mjs';
 import { escapeHtml as h } from './html.mjs';
+import { universe } from './universe-model.mjs';
+import { renderKnowledgeUniverse, renderUniverseThumbnail, bindKnowledgeUniverses } from './knowledge-universe.mjs';
+import { renderChapterPractice, bindChapterPractice } from './chapter-practice.mjs';
+import { renderRangeLab, bindRangeLab } from './algorithm-lab.mjs';
 
 const subjectsById = new Map(subjects.map(item => [item.id, item]));
 const coursesById = new Map(courses.map(item => [item.id, item]));
@@ -9,7 +13,7 @@ const activityCourses = new Map();
 for (const course of courses) {
   for (const lesson of course.lessons) {
     const path = lesson.href?.split('?')[0];
-    if (path?.startsWith('#/learn/') || path?.startsWith('#/lab/')) activityCourses.set(path.slice(2), course);
+    if (path && /^#\/(learn|lab|practice)\//.test(path)) activityCourses.set(path.slice(2), course);
   }
 }
 const statusLabels = { available: '站内可学', external: '开放原课', planned: '规划中' };
@@ -42,7 +46,7 @@ export function routeTitle(path, atlas) {
 }
 export function renderWorkspaceShell(path, body, revision) {
   const area = path.split('/')[0];
-  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', learn:'courses', lab:'courses'})[area] || area;
+  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', learn:'courses', lab:'courses', practice:'courses'})[area] || area;
   const nav = navItems.map(([key, title]) => `<a href="#/${key}" ${active === key ? 'aria-current="' + (key === path ? 'page':'location') + '"' : ''}>${title}</a>`).join('');
   const course = activityCourses.get(path);
   const crumb = course ? breadcrumbs([['课程目录','#/courses'],[course.title,url('course/'+course.id)],['学习活动']]) : '';
@@ -73,9 +77,11 @@ function blockShelf(items, sid) {
   return `<div class="block-grid">${items.map(b=>blockCard(b,sid)).join('')}</div>`;
 }
 function home(lastRoute, atlas) {
-  return `<header class="catalog-hero"><div><h1 id="workbench-title">学科探索</h1><p>按学科发现课程，沿知识图谱查看学习路径。</p></div>${searchForm('',true)}</header>
+  const principalBlocks=blocks.filter(b=>!b.id.startsWith('alg-'));
+  return `<header class="catalog-hero"><div><h1 id="workbench-title">学科探索</h1><p>按学科发现课程，也可以从一个问题追到它的来处。</p></div>${searchForm('',true)}</header>
+  <a href="#/maps" class="universe-entry" aria-label="打开全局知识星图"><div><h2>知识星图</h2><p>放大一个方向，沿着连线寻找下一门课。</p><span class="map-cta">打开全局星图 <b aria-hidden="true">↗</b></span></div>${renderUniverseThumbnail(universe)}</a>
   <div class="subject-grid">${subjects.map(subjectCard).join('')}</div>${resumeLink(lastRoute,atlas)}
-  <section class="shelf"><div class="shelf-head"><div><h2>知识图谱</h2><p>从通用基础或进阶方向出发，查看课程之间的前置关系。</p></div><a href="#/maps">所有板块 →</a></div>${blockShelf(blocks)}</section>`;
+  <section class="shelf"><div class="shelf-head"><div><h2>聚焦一个板块</h2><p>选择学习方向，在同一张星图中查看它的课程。</p></div></div>${blockShelf(principalBlocks)}</section>`;
 }
 function tags(c) {return c.subjectIds.map(id=>`<a class="subject-tag" href="#/subject/${h(id)}">${h(subjectsById.get(id).title)}</a>`).join('');}
 function status(c) {return `<span class="course-status st-${h(c.status)}">${h(statusLabels[c.status])}</span>`;}
@@ -84,27 +90,44 @@ export function resultList(q='', sid='') {
   return `<p class="catalog-total" role="status">${found.length} 门课程</p>${found.length ? `<div class="course-list">${found.map(c=>`<article class="course-row"><div>${status(c)}<h3><a href="${h(url('course/'+c.id,{subject:sid}))}">${h(c.title)} ${arrow}</a></h3><p>${h(c.description)}</p></div><div class="course-tags">${tags(c)}</div></article>`).join('')}</div>` : `<p class="catalog-empty">${q?'没有匹配的课程。可以换一个关键词，或清空搜索。':'这个学科还没有收录课程。'} <a href="#/courses">浏览全部课程 →</a></p>`}`;
 }
 function directory(s, q) {
-  const subjectBlocks = s ? blocksForSubject(s.id) : [];
+  const subjectBlocks = s ? blocksForSubject(s.id).filter(b=>!b.id.startsWith('alg-')) : [];
   return `${s?breadcrumbs([['学科探索','#/home'],[s.title]]):''}<header class="page-intro"><h1>${s?h(s.title):'课程目录'}</h1><p>${s?h(s.description):'按学科筛选，也可以直接查找课程与主题。'}</p></header>
-  ${subjectBlocks.length ? `<aside class="subject-maps"><strong>相关知识板块</strong><div>${subjectBlocks.map(b=>`<a href="${h(url('block/'+b.id,{subject:s.id}))}">${h(b.title)} →</a>`).join('')}</div></aside>`:''}
+  ${subjectBlocks.length ? `<aside class="subject-maps"><a class="map-link-button" href="${h(url('maps',{scope:'subject-'+s.id}))}">进入学科星图 ↗</a><div>${subjectBlocks.map(b=>`<a href="${h(url('block/'+b.id,{subject:s.id}))}">${h(b.title)} →</a>`).join('')}</div></aside>`:''}
   <section class="shelf"><div class="shelf-head"><h2>${s?'学科课程':'全部课程'}</h2></div>${searchForm(q)}
   ${!s?`<nav class="filter-strip" aria-label="按学科浏览">${subjects.map(d=>`<a href="#/subject/${h(d.id)}">${h(d.title)}</a>`).join('')}</nav>`:''}
   <div id="catalog-results" data-subject="${h(s?.id || '')}">${resultList(q,s?.id)}</div></section>`;
 }
-function maps() {
-  return `<header class="page-intro"><h1>知识图谱</h1><p>选择一个板块，查看课程之间的关系。每门课也有自己的学习节点图。</p></header>${blockShelf(blocks)}<p class="index-link"><a href="#/atlas">早期专题练习索引 →</a></p>`;
+function chapterList(block) {
+  const parts = block.id === 'algorithms' ? blocks.filter(b=>b.id.startsWith('alg-')) : [block];
+  return `<section class="shelf handbook-directory"><h2>章节与练习</h2>${parts.map(part=>`<details ${parts.length===1?'open':''}><summary>${h(part.title)} <small>${part.courseIds.length} 章</small></summary>
+  <ol>${part.courseIds.map(id=>coursesById.get(id)).map(c=>`<li><a href="${h(url('course/'+c.id,{block:block.id}))}"><small>第 ${c.chapter} 章</small> ${h(c.title)} →</a></li>`).join('')}</ol></details>`).join('')}</section>`;
+}
+function maps(scopeId,selected) {
+  const scope = universe.scopes.find(s=>s.id===scopeId);
+  return `<header class="page-intro universe-intro"><h1>知识星图</h1><p>每颗星是一门课程。选择课程查看先修与后续，也可以展开它的学习节点。</p></header>
+    ${renderKnowledgeUniverse(universe,{mode:'global',scopeId:scope?.id,selectedId:selected})}
+    <div class="map-directory-links"><a href="#/block/algorithms">竞赛算法 · 手册与章节目录 →</a><a href="#/atlas">早期专题练习索引 →</a></div>`;
 }
 function blockPage(b, s, selected) {
-  const nodes = b.courseIds.map(id=>coursesById.get(id)).map(c=>({...c,href:url('course/'+c.id,{block:b.id,subject:s?.id}),actionLabel:'查看课程图'}));
-  return `${breadcrumbs([s?[s.title,'#/subject/'+s.id]:['知识图谱','#/maps'],[b.title]])}<header class="page-intro"><h1>${h(b.title)}</h1><p>${h(b.description)}</p></header>${renderKnowledgeGraph({id:b.id,title:b.title,type:'block',nodes,edges:b.edges},selected)}`;
+  const isBook = b.id === 'algorithms' || b.id.startsWith('alg-');
+  return `${breadcrumbs([s?[s.title,'#/subject/'+s.id]:['知识星图','#/maps'],[b.title]])}
+    <header class="page-intro universe-intro"><h1>${h(b.title)}</h1><p>${h(b.description)}</p></header>
+    ${renderKnowledgeUniverse(universe,{mode:'scope',scopeId:b.id,selectedId:selected})}
+    ${isBook ? chapterList(b) : ''}`;
 }
 function coursePage(c, b, s, selected) {
   const back = b ? [b.title,url('block/'+b.id,{subject:s?.id,node:c.id})] : s?[s.title,'#/subject/'+s.id]:['课程目录','#/courses'];
-  const parents = blocks.filter(block=>block.courseIds.includes(c.id));
   const nodes = c.lessons.map(n=>({...n,actionLabel:n.href?.startsWith('https:')?'打开原始材料':'进入学习活动'}));
-  return `${breadcrumbs([back,[c.title]])}<header class="page-intro"><div class="course-meta">${status(c)}${tags(c)}</div><h1>${h(c.title)}</h1><p>${h(c.description)}</p></header>
-  ${nodes.length ? renderKnowledgeGraph({id:c.id,title:c.title,type:'course',nodes,edges:c.lessonEdges},selected) : '<p class="catalog-empty">课程内容规划中，发布后会在这里显示学习节点。</p>'}
-  <div class="course-context">${parents.length?`<section><h2>这门课在图谱中的位置</h2><div class="course-tags">${parents.map(p=>`<a href="${h(url('block/'+p.id,{node:c.id}))}">${h(p.title)} →</a>`).join('')}</div></section>`:''}${c.source?`<section><h2>课程来源</h2><a href="${h(c.source.url)}" target="_blank" rel="noopener noreferrer">${h(c.source.label)} ↗</a></section>`:''}</div>`;
+  const mapHref = url('maps',{node:c.id});
+  const directTask = c.practice ? `<a class="map-link-button" href="#/practice/${h(c.id)}">尝试本章练习 →</a>` : '';
+  const chapter = c.chapter ? `<span class="chapter-kicker">Competitive Programmer’s Handbook · 第 ${c.chapter} 章</span>` : '';
+  return `${breadcrumbs([back,[c.title]])}<header class="page-intro"><div class="course-meta">${status(c)}${tags(c)}${chapter}</div><h1>${h(c.title)}</h1><p>${h(c.description)}</p>
+    <div class="course-actions">${directTask}${c.id==='cph-09'?'<a class="map-link-button" href="#/lab/range-queries">打开区间查询实验 →</a>':''}
+    ${c.source?`<a href="${h(c.source.url)}" target="_blank" rel="noopener noreferrer">${h(c.source.label)} ↗</a>`:''}</div></header>
+    <section class="course-surround"><h2>这门课在知识星图中的位置</h2>
+    ${renderKnowledgeUniverse(universe,{mode:'neighborhood',selectedId:c.id,fullHref:mapHref})}</section>
+    <section class="course-contents" id="course-activities"><h2>课内学习图</h2>
+    ${nodes.length ? renderKnowledgeGraph({id:c.id,title:c.title,type:'course',nodes,edges:c.lessonEdges},selected) : '<p class="catalog-empty">课程内容规划中，发布后会在这里显示学习节点。</p>'}</section>`;
 }
 export function platformPage(path, last, atlas, options) {
   const [area,id,extra] = path.split('/');
@@ -113,7 +136,9 @@ export function platformPage(path, last, atlas, options) {
   const selected = options.get('node');
   if (path === 'home') return home(last,atlas);
   if (['courses','learn','lab'].includes(path)) return directory(null,options.get('q') || '');
-  if (path === 'maps') return maps();
+  if (path === 'maps') return maps(options.get('scope'),selected);
+  if (area === 'practice' && coursesById.get(id)?.practice) return renderChapterPractice(coursesById.get(id));
+  if (path === 'lab/range-queries') return renderRangeLab();
   if (area === 'subject' && subjectsById.has(id)) return directory(subjectsById.get(id),options.get('q') || '');
   if (area === 'block' && blocksById.has(id)) {
     const b=blocksById.get(id);
@@ -128,7 +153,13 @@ export function platformPage(path, last, atlas, options) {
   }
   return null;
 }
-export {bindKnowledgeGraph};
+export function bindPlatform(path, root, save) {
+  if (path === 'maps' || path.startsWith('course/') || path.startsWith('block/')) bindKnowledgeUniverses(root);
+  if (path.startsWith('course/')) bindKnowledgeGraph(root);
+  if (path === 'lab/range-queries') bindRangeLab(root);
+  const c = path.startsWith('practice/') && coursesById.get(path.slice('practice/'.length));
+  if (c?.practice) bindChapterPractice(root,c,save);
+}
 export function missingPage() {
   return '<h1 class="page-title">找不到这个页面</h1><a class="btn btn-primary" href="#/home">返回学科探索</a>';
 }

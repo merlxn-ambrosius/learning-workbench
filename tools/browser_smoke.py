@@ -39,7 +39,7 @@ def check_chinese_heading_font(context, page):
 def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
     atlas = json.loads((SITE / "data/atlas.json").read_text(encoding="utf-8"))
     for width in (320, 390, 1280):
-        with browser.new_context(viewport={"width": width, "height": 860}) as context:
+        with browser.new_context(viewport={"width": width, "height": 860}, has_touch=width <= 390) as context:
             page = context.new_page()
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
@@ -67,15 +67,15 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             page.locator('#catalog-query').fill('CS329Z')
             expect(page.locator('#catalog-results .course-row')).to_have_count(1)
             page.locator('.subject-maps a[href^="#/block/agents"]').click()
-            target = page.locator('[data-kg-node="agent"]')
-            target.focus()
-            page.keyboard.press("Enter")
-            expect(target).to_have_attribute("aria-pressed","true")
+            page.locator('[data-uv-locate]').select_option('agent')
+            inspector = page.locator('[data-uv-inspector]')
+            expect(inspector).to_contain_text('Python')
             check_width()
             if screenshots:
                 page.screenshot(path=screenshots / f"block-{width}.png", full_page=True)
-            page.locator('.kg-detail:visible .kg-open').click()
+            inspector.locator('a[data-uv-open]').click()
             expect(page).to_have_url(re.compile(r'#/course/agent'))
+            expect(page.locator('.course-surround [data-uv-inspector]')).to_contain_text('软件规格')
             page.locator('[data-kg-node="experiment"]').click()
             expect(page.locator('.kg-detail:visible')).to_contain_text("处理规则")
             check_width()
@@ -105,6 +105,80 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             check_width()
             if screenshots:
                 page.screenshot(path=screenshots / f"foundations-{width}.png", full_page=True)
+            page.goto(base + "#/maps")
+            chart = page.locator('[data-uv-stage]')
+            expect(chart.locator('[data-uv-node]')).to_have_count(40)
+            if screenshots:
+                page.screenshot(path=screenshots / f"universe-{width}.png", full_page=True)
+            def camera_changed(attribute, previous):
+                page.wait_for_function(
+                    "([attribute, previous]) => document.querySelector('[data-uv-stage]').getAttribute(attribute) !== previous",
+                    arg=[attribute, previous],
+                )
+
+            before = chart.get_attribute('data-zoom')
+            page.locator('[data-uv-action="in"]').click()
+            camera_changed('data-zoom', before)
+            chart.focus()
+            center = chart.get_attribute('data-center-x')
+            page.keyboard.press('ArrowRight')
+            camera_changed('data-center-x', center)
+            chart.scroll_into_view_if_needed()
+            box = chart.bounding_box()
+            x, y = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+            before = chart.get_attribute('data-zoom')
+            if width <= 390:
+                session = context.new_cdp_session(page)
+                def pinch_point(i, delta):
+                    return {"x": x + delta, "y": y, "id": i}
+                for event, radius in [('touchStart', 24), ('touchMove', 48)]:
+                    session.send('Input.dispatchTouchEvent', {"type": event, "touchPoints": [pinch_point(1, -radius), pinch_point(2, radius)]})
+                session.send('Input.dispatchTouchEvent', {"type": "touchEnd", "touchPoints": []})
+                session.detach()
+            else:
+                page.mouse.move(x, y)
+                page.mouse.wheel(0, -140)
+            camera_changed('data-zoom', before)
+            if width == 1280:
+                center = chart.get_attribute('data-center-x')
+                page.mouse.move(x, y)
+                page.mouse.down()
+                page.mouse.move(x + 50, y + 20, steps=5)
+                page.mouse.up()
+                camera_changed('data-center-x', center)
+            page.locator('[data-uv-scope]').select_option('algorithms')
+            page.locator('[data-uv-locate]').select_option('cph-09')
+            expect(page.locator('[data-uv-inspector]')).to_contain_text('区间')
+            page.locator('[data-uv-expand]').click()
+            expect(page.locator('[data-uv-child]').first).to_be_visible()
+            page.locator('[data-uv-action="collapse"]').click()
+            page.locator('[data-uv-inspector] a[data-uv-open]').click()
+            expect(page.locator('.course-surround [data-uv-full]')).to_be_visible()
+            expect(page.locator('.course-contents')).to_be_visible()
+            page.locator('.course-actions a[href="#/lab/range-queries"]').click()
+            page.locator('#rq-operation').select_option('sum')
+            page.locator('#rq-run').click()
+            expect(page.locator('#rq-result')).to_contain_text('不同结果')
+            page.locator('#rq-strategy').select_option('disjoint')
+            page.locator('#rq-run').click()
+            expect(page.locator('#rq-result')).to_contain_text('相同结果')
+            check_width()
+            if width == 320:
+                page.goto(base + "#/course/cph-07?node=s1")
+                first_lesson = page.locator('.kg-node[data-kg-node="s1"]')
+                assert first_lesson.bounding_box()['width'] >= 90, "Compact lesson cards must leave room for a readable title"
+                expect(page.locator('.kg-detail:visible')).to_contain_text('找零')
+                if screenshots:
+                    page.locator('.course-contents').screenshot(path=screenshots / "chapter-7-mobile.png")
+            page.goto(base + "#/practice/cph-09")
+            page.locator('#chapter-answer').fill('wrong')
+            page.locator('.practice-form button').click()
+            expect(page.locator('[data-check-result]')).to_contain_text('有差异')
+            page.locator('[data-save-attempt]').click()
+            expect(page.locator('[data-check-result]')).to_contain_text('已记入')
+            page.goto(base + "#/journal")
+            expect(page.locator('.timeline')).to_contain_text('算法章节练习')
+
             page.goto(base + "#/learn/kl")
             details = page.locator("[data-kl-guide-help]")
             assert not details.evaluate("el => el.open")
@@ -166,8 +240,8 @@ def exercise_preview(browser, scratch):
         page.goto(output.as_uri() + "#/home")
         page.locator('.subject-card[href="#/subject/ai"]').click()
         page.locator('.subject-maps a[href^="#/block/agents"]').click()
-        page.locator('[data-kg-node="agent"]').click()
-        page.locator('.kg-detail:visible .kg-open').click()
+        page.locator('[data-uv-locate]').select_option('agent')
+        page.locator('[data-uv-inspector] a[data-uv-open]').click()
         expect(page.get_by_role("heading", level=1)).to_have_text("Agent 工程入门")
         page.goto(output.as_uri() + "#/learn/micrograd")
         page.locator("#mg-measure").click()
