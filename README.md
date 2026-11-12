@@ -55,3 +55,7 @@ See `AGENTS.md` and `DECISIONS.md`. The old Atlas JSON is retained as a *referen
 ## License
 
 Project source code: MIT (`LICENSE`). Migrated Atlas educational content was developed within the user's project; external courses, brands, and links retain their original ownership. Do not paste external copyrighted lessons into this repository without permission.
+
+## Agent 规则对比
+
+从 `#/learn/agent` 阅读导学，或直接进入 `#/lab/agent`。固定脚本回复，比较保留未分类与另一份下游处理规则；无需先答题。条件与笔记可恢复。来源合同、设计假设和本次验证边界见 [PROJECT_STATE.md](PROJECT_STATE.md#agent-规则对比贡献--2026-11-12)。

@@ -12,3 +12,5 @@
 - D09: Store personal snapshots in a separately authorized private repository. The public site can export and import JSON but does not hold GitHub write credentials or provide automatic remote sync. Preserve timestamped backups and clarify that imports replace local records.
 
 - D10: The micrograd bridge compares two programs at the same starting value and perturbation. Keep optional pre-measurement writing and post-measurement explanation separate for each condition. The KL lab also places the derivation behind an explicit choice. Record observable help context. Learning and transfer require independent learner work.
+
+- D11：Agent 补桥使用固定回复和固定解析器，比较 A（保留未分类）与 B（按 low 处理或不送入摘要）。解析状态与下游去向分列；回退规则不被当成新增分类证据。原课程 v26.1.0 的 P2 本来就要求 unknown 按 normal 处理，本站 high/low 示例不冒充官方合同。去掉不能影响执行的“策略预测”选择，不强制先答题。旧记录不改写，新记录只描述观察条件。交互是否优于静态成对案例仍待验证，见 PROJECT_STATE 的本次设计与检查。

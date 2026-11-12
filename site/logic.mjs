@@ -4,7 +4,7 @@ import { normalizeMicrograd } from './micrograd.mjs';
 
 export const COURSE_LINKS = Object.freeze({
   cs329z: 'https://github.com/cs329z/assignment1-harness',
-  cs329zAssignment: 'https://github.com/cs329z/assignment1-harness/blob/main/cs329z_assignment1_harness.pdf',
+  cs329zAssignment: 'https://github.com/cs329z/assignment1-harness/blob/95f4cb7bfe28a27a7cf5bcb1eccb1aaaf1385eb3/cs329z_assignment1_harness.pdf',
   karpathy: 'https://github.com/karpathy/nn-zero-to-hero',
 });
 
@@ -34,26 +34,37 @@ export function classifyScriptedReply(raw) {
 
 /**
  * An explicitly local teaching simulation, NOT Stanford's original assignment solution.
- * A missing/unknown classification remains visible instead of inventing a label.
+ * Policy changes the downstream route, never the evidence in the parsed category.
+ * Even a dropped input remains in rows so its original text and state are inspectable.
  */
-export function runHarness(scenario = 'baseline') {
-  const selected = SCENARIOS[scenario];
-  if (!selected) throw new Error(`Unknown scenario: ${scenario}`);
-  const rows = selected.items.map(item => ({
-    ...item,
-    category: classifyScriptedReply(item.reply),
-  }));
+export function processScriptedItems(items, policy = 'keep') {
+  if (!['keep', 'low', 'drop'].includes(policy)) throw new RangeError(`Unknown routing policy: ${policy}`);
+  if (!Array.isArray(items)) throw new TypeError('items must be an array');
+  const rows = items.map(item => {
+    const category = classifyScriptedReply(item.reply);
+    const routedCategory = category !== 'unclassified' || policy === 'keep'
+      ? category
+      : policy === 'low' ? 'low' : null;
+    return { ...item, category, routedCategory, included: routedCategory !== null };
+  });
   const counts = {
     high: rows.filter(item => item.category === 'high').length,
     low: rows.filter(item => item.category === 'low').length,
     unclassified: rows.filter(item => item.category === 'unclassified').length,
   };
+  const included = rows.filter(item => item.included);
   return {
-    scenario,
+    policy,
     rows,
     counts,
-    digest: rows.map(item => `${item.id} · ${item.category === 'unclassified' ? '未分类（需处理）' : item.category.toUpperCase()} · ${item.subject}`).join('\n'),
+    includedCount: included.length,
+    digest: included.map(item => `${item.id} · ${item.routedCategory === 'unclassified' ? '未分类（需处理）' : item.routedCategory.toUpperCase()} · ${item.subject}`).join('\n'),
   };
+}
+
+export function runHarness(scenario = 'baseline', policy = 'keep') {
+  if (!Object.hasOwn(SCENARIOS, scenario)) throw new Error(`Unknown scenario: ${scenario}`);
+  return { scenario, ...processScriptedItems(SCENARIOS[scenario].items, policy) };
 }
 
 export const TEACHER_DIST = Object.freeze([0.8, 0.15, 0.05]);
@@ -85,6 +96,20 @@ export function klLogitGradient(teacher, student) {
 export const STORAGE_KEY = 'learn-workbench.progress.v1';
 export const FORMAT_VERSION = 1;
 
+/** Optional v1 extension: never infer a new observation from a legacy prediction. */
+export function normalizeAgent(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const validCondition = ['baseline', 'changed'].includes(source.scenario) && ['low', 'drop'].includes(source.policy);
+  return {
+    scenario: ['baseline', 'changed'].includes(source.scenario) ? source.scenario : 'changed',
+    policy: ['low', 'drop'].includes(source.policy) ? source.policy : 'low',
+    shown: validCondition && source.shown === true,
+    hintOpen: source.hintOpen === true,
+    explanationOpen: source.explanationOpen === true,
+    transferOpen: source.transferOpen === true,
+  };
+}
+
 export function defaultProgress() {
   return {
     version: FORMAT_VERSION,
@@ -93,6 +118,7 @@ export function defaultProgress() {
     evidence: [],
     decisions: {},
     micrograd: normalizeMicrograd(null),
+    agent: normalizeAgent(null),
   };
 }
 
@@ -103,6 +129,7 @@ export function normalizeProgress(value) {
   }
   const output = defaultProgress();
   output.micrograd = normalizeMicrograd(value.micrograd);
+  output.agent = normalizeAgent(value.agent);
   const route = String(value.lastRoute ?? '');
   if (/^#\/(home|learn(?:\/(?:agent|kl|micrograd))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
     output.lastRoute = route;
