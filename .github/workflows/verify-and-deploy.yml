@@ -30,6 +30,8 @@ jobs:
           test -f site/data/atlas.json
           node --check site/app.js
           node --check site/logic.mjs
+      - name: Validate versioned Pages resources
+        run: python3 tools/verify_pages.py build "$RUNNER_TEMP/learn-pages" "$GITHUB_SHA"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -68,8 +70,14 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Prepare versioned Pages resources
+        run: python3 tools/verify_pages.py build "$RUNNER_TEMP/learn-pages" "$GITHUB_SHA"
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: ${{ runner.temp }}/learn-pages
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify the public site matches this commit
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: python3 tools/verify_pages.py check "$RUNNER_TEMP/learn-pages" "$PAGES_URL"
