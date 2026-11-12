@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {tracks, studyRoute, studyPath, connections, chapterId} from '../site/study-index.mjs';
+import {choices,comparisons} from '../site/study-choices.mjs';
 import {studyPage} from '../site/study-reader.mjs';
 import {courses} from '../site/knowledge-catalog.mjs';
 import {universe} from '../site/universe-model.mjs';
@@ -12,7 +13,11 @@ test('every concept has one stable chart node, a complete pair of readings and a
     const lesson=(await import('../site/topics/'+track.id+'.mjs')).default;
     assert.deepEqual(track.units.map(r=>r[0]),lesson.units.map(u=>u.id));
     await new Promise(resolve=>studyPage(studyPath(track.id),new URLSearchParams(),resolve));
+    assert.ok(comparisons[track.id]);
+    const home=studyPage(studyPath(track.id),new URLSearchParams());
+    assert.match(home,/study-topic-home/);
     for (const [id,,chapter] of track.units){
+      assert.ok(choices[track.id+'/'+id]);
       const path=studyPath(track.id,id), href='#/'+path;
       assert.ok(!canonical.has(href));canonical.add(href);
       const matches=courses.filter(c=>c.lessons.some(l=>l.href===href));

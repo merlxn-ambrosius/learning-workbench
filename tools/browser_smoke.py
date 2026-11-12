@@ -39,11 +39,17 @@ def check_chinese_heading_font(context, page):
 def exercise_study_reader(page, base, width, screenshots, check_width):
     shelf = page.locator(".study-shelf")
     if width == 1280:
-        for slug, title in [("shortest-paths", "最短路径"), ("dynamic-programming", "动态规划"),
-                            ("segment-tree", "线段树"), ("bit-manipulation", "位运算")]:
+        tracks = [("shortest-paths", "最短路径", "deque"), ("dynamic-programming", "动态规划", "state-dag"),
+                  ("segment-tree", "线段树", "ordered-fold"), ("bit-manipulation", "位运算", "bit-partition")]
+        for slug, title, first_unit in tracks:
             page.goto(base + "#/block/algorithms")
             shelf.locator(f'a[href="#/topic/{slug}"]').click()
-            expect(page.locator(".study-subject")).to_have_text(title)
+            guide = page.locator(".study-topic-home")
+            expect(guide).to_be_visible()
+            expect(guide.locator(".study-subject")).to_have_text(title)
+            href = f"#/topic/{slug}/{first_unit}"
+            guide.locator(f'a[data-study-unit][href="{href}"]').click()
+            expect(page).to_have_url(base + href)
             expect(page.locator(".study-pseudo code")).to_be_visible()
             expect(page.locator(".study-solution code")).to_be_hidden()
             expect(page.locator(".study-judges .study-task").first).to_have_attribute("href", re.compile("^https://"))
@@ -360,7 +366,12 @@ def exercise_preview(browser, scratch):
             assert path.read_bytes() == (SITE / "materials/micrograd" / name).read_bytes()
         page.goto(output.as_uri() + "#/topics")
         page.locator('.study-shelf a[href="#/topic/segment-tree"]').click()
-        expect(page.locator(".study-subject")).to_have_text("线段树")
+        guide = page.locator(".study-topic-home")
+        expect(guide).to_be_visible()
+        expect(guide.locator(".study-subject")).to_have_text("线段树")
+        guide.locator('a[data-study-unit][href="#/topic/segment-tree/ordered-fold"]').click()
+        expect(page.locator(".study-pseudo code")).to_be_visible()
+        expect(page.locator(".study-solution code")).to_be_hidden()
         page.locator(".study-tabs").get_by_role("link", name="证明与边界").click()
         expect(page.locator(".study-proof li").first).to_be_visible()
         expect(page.locator('.study-judges .study-task').first).to_have_attribute('href', re.compile('^https://'))

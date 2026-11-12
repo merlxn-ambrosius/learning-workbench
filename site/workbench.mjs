@@ -38,11 +38,11 @@ function subjectArt(id) {
   return '<svg class="subject-art" aria-hidden="true" viewBox="0 0 130 110" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">' + (g[id] || '') + '</svg>';
 }
 const homeTitles = {home:'学科探索', courses:'课程目录', learn:'课程目录', lab:'课程目录', maps:'知识图谱', atlas:'专题练习索引', journal:'学习记录', sync:'协作与备份'};
-export function isLearningUnit(path) { return activityCourses.has(path) || Boolean(studyRoute(path)); }
+export function isLearningUnit(path) { return activityCourses.has(path) || Boolean(studyRoute(path) && path.split('/').length===3); }
 export function routeTitle(path, atlas) {
   if (path === 'topics') return '算法专题';
   const study=studyRoute(path);
-  if(study)return study.track.title+' · '+study.row[1];
+  if(study)return path===studyPath(study.track.id)?study.track.title:study.track.title+' · '+study.row[1];
   if (homeTitles[path]) return homeTitles[path];
   if (activityCourses.has(path)) return activityCourses.get(path).title;
   const [area,id] = path.split('/');
