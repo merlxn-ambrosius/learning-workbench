@@ -58,3 +58,12 @@ test('imports are constrained to the available experiments and bounded local tex
   assert.equal(recovered.prediction.length, MICROGRAD_TEXT_LIMIT);
   assert.deepEqual(Object.keys(recovered.trials), ['2/0.1']);
 });
+
+test('legacy top-level drafts remain in the journal and invalid conditions do not inherit a completed trial',()=>{
+  const legacy=normalizeMicrograd({x:2,h:0.1,prediction:'before measurement',ran:true,explanation:'after'});
+  assert.equal(legacy.trials['2/0.1'].prediction,legacy.prediction);
+  assert.equal(legacy.trials['2/0.1'].ran,true);
+  const ambiguous=normalizeMicrograd({x:93,h:0.1,ran:true,prediction:'another condition'});
+  assert.equal(ambiguous.ran,false);
+  assert.deepEqual(ambiguous.trials,{});
+});

@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import * as logic from '../site/logic.mjs';
+import * as workspace from '../site/workbench.mjs';
+import * as agentView from '../site/agent-view.mjs';
+import * as klView from '../site/kl-view.mjs';
+import * as html from '../site/html.mjs';
+import { openProgressStore } from '../site/progress-store.mjs';
+import { atlasListing } from '../site/atlas.mjs';
 import { microgradPage, mountMicrograd } from '../site/micrograd-view.mjs';
 
 // Runs actual app renderers/handlers against tiny boundary stubs. This is NOT a
@@ -30,9 +36,10 @@ async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
     body:{appendChild(node){elements.set(node.id,node)}},
   };
   const context = vm.createContext({
-    ...logic, microgradPage,mountMicrograd,document,console,
+    ...logic, ...workspace, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,
     location:{hash:route},
     localStorage:{getItem(){return storage},setItem(key,value){if(blocked)throw new Error('blocked');storage=value}},
+    confirm:()=>true,
     window:{addEventListener(){},scrollTo(){}},
     fetch:async()=>({ok:true,json:async()=>({nodes:[],courses:[],routes:[],sources:[]})}),
     setTimeout:()=>0,clearTimeout(){},
@@ -43,7 +50,12 @@ async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
     html:()=>element('app').innerHTML,
     saved:()=>JSON.parse(storage),
     toast:()=>element('toast').textContent,
-    focus,
+    focus, element,
+    route(hash) { context.location.hash=hash; vm.runInContext('render()',context); },
+    async restore(value) {
+      await vm.runInContext('importBackup',context)({size:100, text:async()=>JSON.stringify(value)});
+    },
+    guideHelp() {listeners.get('toggle')({target:{dataset:{klGuideHelp:''},open:true,isConnected:true}})},
     async click(id) {await listeners.get('click')({target:{closest(selector){return selector==='button'?element(id):null}}})},
     change(id,value) {listeners.get('change')({target:{id,value}})},
     note(value){listeners.get('input')({target:{value,dataset:{note:'agent'},matches:s=>s==='[data-note]'}})},
@@ -94,7 +106,7 @@ test('All-valid control and both policies keep three records; assistance never b
   app.toggle('explanationOpen',false);
   await app.click('agent-record');
   assert.match(app.saved().evidence[0].help,/当前展开完整解释/);
-  assert.match(app.saved().evidence[1].help,/其他帮助未确认/);
+  assert.match(app.saved().evidence[1].help,/此前展开过完整解释/);
   assert.doesNotMatch(JSON.stringify(app.saved().evidence),/独立|掌握/);
 });
 
@@ -112,4 +124,39 @@ test('Shared-file edits keep KL rendering and its explanation functional',async(
   assert.match(app.html(),/下降/);
   await app.click('kl-reveal');
   assert.equal(app.saved().decisions.klSawExplanation,'yes');
+});
+
+test('failed import preserves original notes in the page and in storage',async()=>{
+  const original={...logic.defaultProgress(),notes:{agent:'original',kl:'',general:''}};
+  const app=await session(original,{blocked:true,route:'#/journal'});
+  await app.restore({...original,notes:{...original.notes,agent:'replacement'}});
+  app.route('#/journal');
+  assert.equal(app.saved().notes.agent,'original');
+  assert.match(app.html(),/original/);
+  assert.doesNotMatch(app.html(),/replacement/);
+  assert.match(app.toast(),/存储失败/);
+});
+
+test('KL explains failed saves and records optional guide exposure on later judgments',async()=>{
+  const app=await session(null,{route:'#/learn/kl'});
+  app.guideHelp();
+  app.route('#/lab/kl');
+  app.element('kl-prediction').value='down';
+  await app.click('kl-save');
+  assert.match(app.saved().evidence.at(-1).help,/导学页中的机制解释/);
+  const blocked=await session(null,{blocked:true,route:'#/lab/kl'});
+  blocked.element('kl-prediction').value='down';
+  await blocked.click('kl-save');
+  assert.match(blocked.element('kl-saved').textContent,/仅保留在本页/);
+});
+
+test('recording an 81st event keeps earlier work in exports and after reload',async()=>{
+  const initial=logic.defaultProgress();
+  initial.evidence=Array.from({length:80},(_,i)=>({kind:'原记录',summary:'第'+i+'条',help:'未记录',date:'2026-11-01'}));
+  const app=await session(initial);
+  await app.click('agent-run');await app.click('agent-record');
+  assert.equal(app.saved().evidence.length,81);
+  const restored=await session(app.saved(),{route:'#/journal'});
+  assert.match(restored.html(),/显示最近 80 条。全部 81 条/);
+  assert.equal(logic.normalizeProgress(app.saved()).evidence[0].summary,'第0条');
 });

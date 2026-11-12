@@ -1,60 +1,26 @@
-# LEARN · Cross-chat contribution and private backup
+# 跨对话维护与个人备份
 
-> This document is intended for humans **and** GitHub-enabled learning agents. Public teaching code and personal learner data are separate by design.
+## 把一次学习中的发现带回工作台
 
-## Repository boundaries
+其他学习对话可以向 LEARN 提交改进建议。仓库中的决策和可运行产品是各对话共享的依据。一次对话只需带回一个值得解决的理解障碍，也可以发现已有解释足够、重复入口可以删掉。
 
-| Destination | Visibility | Purpose | Never place here |
-| --- | --- | --- | --- |
-| `merlxn-ambrosius/learning-workbench` | **public** | Website, reusable teaching units, original diagrams, source links, tests, documentation | Personal learning journal, conversation transcripts, authentication material, confidential rubrics or unpublished assessments |
-| `merlxn-ambrosius/learning-workbench-private` | **private**, owner must create and authorize | Explicitly selected JSON snapshots from Journal, personal learning progress and private handoff documents | Plaintext passwords, access tokens, third-party confidential data, unnecessary raw conversation dumps |
+1. 读取 `README.md`、`AGENTS.md`、`PROJECT_STATE.md`、`DECISIONS.md` 和实际相关的页面、源码、测试，走一遍学习者会用到的路径。
+2. 用可公开的例子说明学习者卡在哪一步，核对原课程或作业版本。明确区分学习者实际做过的事和设计者的推断。未经授权的笔记、完整聊天、受保护的题目和第三方课程全文留在原处。
+3. 优先复用课程和已有交互。改动应帮助学习者做出一个具体判断、构造或解释。可以改写、合并或移除带来额外负担的界面。
+4. 在分支上修改并提交 PR。跑 `npm test`，实际检查相关浏览器路径、键盘操作和旧记录恢复。说明哪些结果已观察到、哪些仍待验证。独立能力需要学习者在新任务上展示。
+5. 公共课件进入 `merlxn-ambrosius/learning-workbench`。PR 由项目负责人审阅；按授权合并后，`main` 的工作流发布 Pages。
 
-**Private GitHub storage is not end-to-end encryption.** GitHub and those granted access to the repository can potentially access its contents. Consider client-side encryption separately if higher confidentiality is needed. Never build or publish a GitHub personal access token, OAuth secret or GitHub App private key into static Pages or `localStorage`.
+**可粘贴给其他学习对话的指令**
 
-## Contributing from another ChatGPT conversation / agent
+> 请读取 merlxn-ambrosius/learning-workbench 的项目约定和相关源码，围绕本次学习中一个值得解决的困难，改进工作台或移除妨碍理解的设计。保留成熟课程与真实作业作为主线。用可公开的例子说明判断依据，在分支上实施，运行测试并走查实际交互，提交 PR，列出尚待验证的部分。私人笔记、聊天原文和评估材料留在对话或私有环境中。
 
-1. Ensure this conversation has a GitHub connector with access to `merlxn-ambrosius/learning-workbench`. Chat history and local browser data are not automatically readable across conversations.
-2. State the learning goal and material **in the current conversation**. Distinguish what the learner explicitly said or confirmed from an assistant's proposal. If critical context is in another conversation, share the relevant source or use an authorized context lookup; do not invent it.
-3. Read the current repository's `README.md`, `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, this `SYNC.md`, and the actual files being changed. Validate any source links and the external course/assignment version.
-4. Scope a minimal teaching improvement around one observed difficulty. Prefer established course materials and existing components. Do not copy third-party textbooks or official solutions without permission. A linked source is not a license.
-5. Open a new branch, edit files, add/repair tests, run `npm test`, and exercise the changed UI when a browser is available. State clearly what was or was not run. Do not bypass existing tests or silently revise private data schemas.
-6. Create a Pull Request with the learning goal, source/provenance, visible changes, verification, known limitations, and screenshots if useful. Leave merge to the repo owner unless specifically authorized. After merge, main's existing GitHub Pages workflow publishes the public learning content.
+## 在另一台设备恢复记录
 
-Do **not** use public Issues, PR descriptions, filenames, CI logs or screenshots as a place to dump the learner's private notes or a complete private conversation. A hypothetical teaching example is not independent evidence of the learner mastering it.
+工作台把学习记录保存在当前浏览器。项目有独立的私有仓库 `merlxn-ambrosius/learning-workbench-private`，用来存放所有者主动选定的快照。网站没有 GitHub 写入凭据。GitHub 对话连接的权限与网页分开管理。
 
-### Copyable prompt for another learning conversation
+1. 在有记录的浏览器打开「学习记录」，导出 JSON。文件名包含时间戳，形如 `learn-progress-*.json`。
+2. 若要远程备份，在 GitHub 确认目标仓库仍为 **Private**、访问成员合适且没有公开发布记录。手动上传所选 JSON，保留原文件名和旧版本。也可以在有权限的对话中明确授权助手上传这一份文件。不要把学习记录放进公开仓库的文件、Issue、PR、日志或截图。
+3. 在私有仓库确认文件已出现并能下载。仅在浏览器生成文件，还没有完成远程备份。
+4. 在目标浏览器打开「学习记录」，先导出需要保留的本地记录，再选择要恢复的 JSON。确认导入后，本地记录整体替换，不会合并两台设备的数据。
 
-> Please integrate the **publicly shareable educational results of this conversation** into `merlxn-ambrosius/learning-workbench` using the connected GitHub app. First inspect `README.md`, `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, `SYNC.md`, and relevant source. Build one minimal, useful lesson or interaction for the specific learning difficulty, preserving source/provenance and tests. Use a branch and Pull Request (do not silently write to main), report what you verified, and give me the PR link. Do not publish my personal notes, raw conversation, private test material, tokens, or API keys. If GitHub is not available, say so instead of claiming the work is synced.
-
-## Private progress backups — current safe path (manual upload)
-
-1. Create a separate **private** repository `merlxn-ambrosius/learning-workbench-private` (with a README and with **Pages disabled**). Keep it separate from the public site.
-2. Open the public site's **Journal → 导出我的记录**. It downloads a timestamped `learn-progress-*.json` containing the current browser-local study state.
-3. In the **private** GitHub repository use **Add file → Upload files**, and commit the downloaded JSON as a new snapshot. Multiple timestamps are intentionally preserved. If the private repo is connected to ChatGPT, you can instead explicitly give an agent the exported JSON and ask it to commit a *new snapshot* there after checking visibility.
-4. To restore, download the chosen JSON snapshot, open **Journal → 导入备份**, and confirm replacement. Import currently **replaces**, rather than merges, this browser's notes and events; first export the current state to avoid data loss.
-5. A local export is not a verified remote backup. Check that the file appears in the **private** repository before relying on it. Occasional offline copies are prudent.
-
-The public static site **cannot automatically read or write private repositories** with the existing GitHub ChatGPT app connection. The GitHub connector used by a ChatGPT conversation is not a credential that the website can borrow. True browser-to-private-repository syncing requires separately designed user authentication, write permissions, conflict resolution, and clear recovery semantics. This functionality is **not implemented** in the v0.1 site.
-
-### Suggested private repository structure (to initialize after account authorization)
-
-```text
-README.md                 # Private-data purpose and recovery instructions
-snapshots/
-  YYYY-MM-DDTHH-MM-SS-sssZ.json
-handoffs/                  # Optional, explicitly selected private summaries
-```
-
-Naming above is an organizational convention, not a required JSON schema. For manual GitHub uploads, placing `learn-progress-*.json` in the private repository root is also acceptable until these folders exist.
-
-## What "sync" means today
-
-| Sync operation | Current status |
-| --- | --- |
-| Another ChatGPT conversation proposes a new lesson and creates PR | **Supported** with connected GitHub permissions |
-| Merge PR and publish Pages site | **Supported** by existing Actions workflow |
-| Browser Journal exports/restores versioned JSON | **Supported** |
-| Store an exported JSON snapshot in an extra private GitHub repo | **Supported after repository creation and manual upload** |
-| Browser records appear in private GitHub automatically | **Not implemented** |
-| Multiple browsers merge learning progress safely | **Not implemented** |
-| Other agents automatically know the contents of all prior chats | **Not supported** |
+私有仓库的授权成员可以读取快照。工作台不提供端到端加密、自动上传或多端合并。

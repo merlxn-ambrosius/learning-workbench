@@ -1,12 +1,12 @@
 name: 新增或改进学习单元
-about: 从真实学习困难出发添加交互，而不是扩建空目录
+description: 从真实学习困难出发添加交互，而不是扩建空目录
 labels: ["education"]
 body:
   - type: textarea
     id: difficulty
     attributes:
       label: 真实学习困难
-      description: 学习者无法解释、推导、实现、调试或迁移的具体机制是什么？
+      description: 请用可公开的例子说明具体困难，避免粘贴私人笔记、完整对话或受保护的题目。
     validations:
       required: true
   - type: textarea

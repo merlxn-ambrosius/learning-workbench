@@ -1,61 +1,40 @@
 # LEARN Workbench
 
-> Continue thinking, not starting over. 先学真实课程，再为真正需要的机制添加交互。
+[打开学习工作台](https://merlxn-ambrosius.github.io/learning-workbench/) · [项目现状](PROJECT_STATE.md) · [重构审查与待定事项](REVIEW.md)
 
-A small, browser-first educational workspace for independent study and future agent-assisted maintenance. It combines three interactive teaching bridges, recovered Atlas navigation, and private browser-local learning notes. **It is not a complete university course or a certified skills test.**
+LEARN 的教学试验平台。遇到一个具体问题时，可以直接实验、先读解释，或回到原课程继续做作业。学习记录保存在当前浏览器，支持手动导出和恢复。
 
-## Start locally
+| 问题 | 在工作台能做什么 | 原材料 |
+| --- | --- | --- |
+| 一条无法分类的回复，怎样进入摘要？ | 固定三条输入，比较两份下游处理规则，查看真实的逐行运行结果 | [Stanford CS329Z HW1，固定版本](https://github.com/cs329z/assignment1-harness/blob/95f4cb7bfe28a27a7cf5bcb1eccb1aaaf1385eb3/cs329z_assignment1_harness.pdf) |
+| 两个相等的数，是同一个输入吗？ | 比较共享输入与固定因子的数值变化，下载 Python 起步文件，自己实现求导 | [Karpathy 第一讲](https://www.youtube.com/watch?v=VMj-3S1tku0&t=4948s) |
+| 学生比教师更确信是猫，该怎样更新？ | 移动同一个学生概率，比较硬标签交叉熵与蒸馏 KL 对同一 logit 的要求 | [蒸馏原论文](https://arxiv.org/abs/1503.02531) |
 
-Requires Python 3 for serving static files (or any static HTTP server). Node.js 20+ is used for pure-function tests.
+工作台里的案例属于公开练习。站内保存的预测、看过的提示和实验输出有助于恢复思路。官方评测、独立解题和延迟迁移需另外取得证据。
 
-```bash
-python3 -m http.server 4173 --directory site
-# open http://localhost:4173
-node --test tests/*.test.mjs
+## 本地运行
+
+在仓库根目录运行以下命令。生产页面使用原生 ES 模块；运行网站无需安装 npm 包。
+
+```sh
+npm start
+# http://localhost:4173
+npm test
 ```
 
-No dependency install, API key, or paid backend is needed for the current alpha. Do not double-click `site/index.html` as a `file://` URL: the Atlas JSON is fetched over HTTP.
+开发检查使用 Node.js 20+ 和 Python 3。需要可直接双击的单文件版本时，运行：
 
-## Pages deployment
+```sh
+python3 tools/make_preview.py /tmp/LEARN-Workbench.html
+```
 
-1. Create a new **public** repository `learning-workbench` under your GitHub account. Public is suitable for Github Free Pages; **do not commit private data**.
-2. Grant the connected GitHub App access to this repository in GitHub → Settings → Applications → Installed GitHub Apps → Configure → Repository access (select only this new repository).
-3. Push the project files to `main` (this repo's root should contain `.github`, `site`, `tests`, and `README.md`).
-4. In the repository Settings → Pages → Build and deployment, select **GitHub Actions**.
-5. Verify **Actions → Verify and deploy LEARN** succeeds; then visit `https://<owner>.github.io/learning-workbench/`.
+预览包含站内模块、航图和两份 Python 练习文件。外部课程链接需要网络。预览的本地记录与线上网站属于不同的浏览器存储环境。
 
-The site uses relative asset and data paths, so a project-path `/<repo>/` works without Vite `base` config.
+## 验证、协作与发布
 
-## What is real, and what is a teaching simulation?
+- 机械计算、存储恢复、路由和离线包有自动化回归。真实浏览器走查使用 Python Playwright 和 Chrome，见 [browser_smoke.py](tools/browser_smoke.py)。这两项只用于开发检查。
+- 跨对话贡献和备份操作见 [SYNC.md](SYNC.md)。LEARN 统筹平台的教学方向、交互和验收；贡献者通过 PR 汇入，产品取舍记入 [DECISIONS.md](DECISIONS.md)。
+- GitHub Actions 验证 PR。合并至默认分支后，Pages 发布 `site/`。本仓库无需从头配置 Pages。
+- 笔记使用浏览器键 `learn-workbench.progress.v1`。清理浏览器或迁移设备前，请导出 JSON。导入需确认，会替换当前记录。仓库和站点均不接收个人笔记、私密题库或凭据。
 
-- **Real and tested in source:** the KL(P||Q) calculations and softmax-logit gradient; deterministic script normalization, counting and digest; local data import/normalization; Atlas data loaded from previous project.
-- **Original illustrative content:** short Agent, KL distillation and micrograd bridges. The micrograd unit measures finite differences for a shared operand and a fixed operand, with a downloadable Python starter and a public example. The Agent simulator is not the official CS329Z exercise, grader, or a real model call.
-- **Requires external work:** CS329Z HW1 Problem 1 (`priority`) and Problem 2 (`daily_digest`) should be completed in Stanford's own repository and checked against its contract; follow its AI-use and academic rules.
-- **Not included:** private authentication, cross-device sync, Python execution, live agent services, hidden evaluation banks.
-
-## Data and privacy
-
-Learning notes and experiments use `localStorage` key `learn-workbench.progress.v1`, stay in the current browser profile, and are not uploaded to GitHub. Export backups from Journal before browser cleanup or device changes. Browser localStorage can be cleared or blocked; backups are essential. Import replaces the current browser record with user confirmation. There is no telemetry.
-
-## Share lessons across chats and back up progress
-
-The site now has a **Sync · 协作与备份** page with a copyable GitHub handoff prompt and a separate private-backup walkthrough. For the full operational protocol, see [`SYNC.md`](SYNC.md). Public lesson updates go to PRs in this repository; personal study JSON goes **only** to an additional **private** repository created and authorized by the owner. There is no site-side GitHub login, automatic cloud backup, or cross-device merge.
-
-## Add a unit without breaking the experience
-
-1. Capture the real difficulty and original source/assignment version in an Issue.
-2. Try an explanation or concrete exercise before inventing a new widget.
-3. If interaction is worthwhile, add a minimal module and automated domain tests.
-4. Keep simulated behavior and official requirements clearly differentiated.
-5. Test browser behavior, accessibility, keyboard and mobile layouts; open a PR.
-6. Record any changes to stable learning data and update `PROJECT_STATE.md`.
-
-See `AGENTS.md` and `DECISIONS.md`. The old Atlas JSON is retained as a *reference and navigation index*, not forced prerequisite gating.
-
-## License
-
-Project source code: MIT (`LICENSE`). Migrated Atlas educational content was developed within the user's project; external courses, brands, and links retain their original ownership. Do not paste external copyrighted lessons into this repository without permission.
-
-## Agent 规则对比
-
-从 `#/learn/agent` 阅读导学，或直接进入 `#/lab/agent`。固定脚本回复，比较保留未分类与另一份下游处理规则；无需先答题。条件与笔记可恢复。来源合同、设计假设和本次验证边界见 [PROJECT_STATE.md](PROJECT_STATE.md#agent-规则对比贡献--2026-11-12)。
+项目代码使用 [MIT License](LICENSE)。外部课程、论文、作业和品牌各有其权利归属。

@@ -7,3 +7,6 @@ coverage/
 .env.*
 !.env.example
 private/
+learn-progress-*.json
+learn-progress-*-original.txt
+__pycache__/

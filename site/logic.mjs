@@ -95,6 +95,7 @@ export function klLogitGradient(teacher, student) {
 
 export const STORAGE_KEY = 'learn-workbench.progress.v1';
 export const FORMAT_VERSION = 1;
+export const NOTE_LIMIT = 12000;
 
 /** Optional v1 extension: never infer a new observation from a legacy prediction. */
 export function normalizeAgent(value) {
@@ -113,7 +114,7 @@ export function normalizeAgent(value) {
 export function defaultProgress() {
   return {
     version: FORMAT_VERSION,
-    lastRoute: '#/learn/agent',
+    lastRoute: '#/home',
     notes: { agent: '', kl: '', general: '' },
     evidence: [],
     decisions: {},
@@ -127,6 +128,14 @@ export function normalizeProgress(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== FORMAT_VERSION) {
     throw new Error('这不是兼容版本的 LEARN 学习记录。');
   }
+  // Existing v1 backups may predate the lab fields. A version number alone
+  // (or an invalid core container) cannot establish a restorable snapshot.
+  const objectFields = ['notes', 'decisions'];
+  if (![...objectFields, 'evidence', 'micrograd', 'agent', 'lastRoute'].some(key => Object.hasOwn(value, key)) ||
+      objectFields.some(key => key in value && (!value[key] || typeof value[key] !== 'object' || Array.isArray(value[key]))) ||
+      ('evidence' in value && !Array.isArray(value.evidence))) {
+    throw new Error('学习记录结构不完整。请检查原文件或选择其他备份。');
+  }
   const output = defaultProgress();
   output.micrograd = normalizeMicrograd(value.micrograd);
   output.agent = normalizeAgent(value.agent);
@@ -137,7 +146,7 @@ export function normalizeProgress(value) {
   if (value.notes && typeof value.notes === 'object') {
     for (const name of Object.keys(output.notes)) {
       const text = value.notes[name];
-      if (typeof text === 'string') output.notes[name] = text.slice(0, 12000);
+      if (typeof text === 'string') output.notes[name] = text.slice(0, NOTE_LIMIT);
     }
   }
   if (value.decisions && typeof value.decisions === 'object' && !Array.isArray(value.decisions)) {
@@ -147,7 +156,7 @@ export function normalizeProgress(value) {
     }
   }
   if (Array.isArray(value.evidence)) {
-    output.evidence = value.evidence.slice(-80).filter(entry =>
+    output.evidence = value.evidence.filter(entry =>
       entry && typeof entry === 'object' &&
       typeof entry.kind === 'string' && typeof entry.summary === 'string' &&
       typeof entry.date === 'string'
