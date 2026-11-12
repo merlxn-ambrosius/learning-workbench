@@ -48,23 +48,26 @@ function graphLayout(levels, compact, bypassCount) {
   const width = 1000; // Scales to container width. The vertical scale remains in CSS pixels.
   const cardHeight = compact ? 90 : 70;
   const breadth = Math.max(...levels.map(level => level.length));
-  const height = compact ? levels.length * 138 + 12 : Math.max(178, breadth * 99 + 22 + bypassCount * 7);
-  const inset = compact && bypassCount ? 34 + 8 * bypassCount : 12;
-  const headroom = compact ? 0 : 10 + bypassCount * 7;
+  // Four or more peers would squeeze labels into slivers on a phone. Stack
+  // those peers vertically and keep successive prerequisite ranks in columns.
+  const vertical = compact && breadth < 4;
+  const height = vertical ? levels.length * 138 + 12 : Math.max(178, breadth * (cardHeight + 29) + 22 + bypassCount * 7);
+  const inset = vertical && bypassCount ? 34 + 8 * bypassCount : 12;
+  const headroom = vertical ? 0 : 10 + bypassCount * 7;
   const points = new Map();
   levels.forEach((level, depth) => level.forEach((node, index) => {
-    const rankWidth = compact ? level.length : levels.length;
+    const rankWidth = vertical ? level.length : levels.length;
     const slotWidth = (width - 2 * inset) / rankWidth;
-    const x = inset + ((compact ? index : depth) + 0.5) * slotWidth;
-    const y = compact ? 56 + depth * 138 : headroom + (index + 0.5) / level.length * (height - headroom - 10);
-    const cardWidth = compact ? Math.min(630, slotWidth * 0.93) : Math.min(330, slotWidth * 0.79);
+    const x = inset + ((vertical ? index : depth) + 0.5) * slotWidth;
+    const y = vertical ? 56 + depth * 138 : headroom + (index + 0.5) / level.length * (height - headroom - 10);
+    const cardWidth = Math.min(compact ? 630 : 330, slotWidth * (vertical ? 0.93 : 0.79));
     points.set(node.id, { x, y, cardWidth, cardHeight, depth });
   }));
-  return { points, height };
+  return { points, height, vertical };
 }
 
-function edgePath(from, to, compact, rail) {
-  if (compact) {
+function edgePath(from, to, vertical, rail) {
+  if (vertical) {
     const start = from.y + from.cardHeight / 2;
     const end = to.y - to.cardHeight / 2 - 3;
     if (to.depth > from.depth + 1) {
@@ -91,11 +94,11 @@ function drawEdges(layout, edges, compact, base) {
   const paths = edges.map(({ from, to, kind }) => {
     const start = layout.points.get(from);
     const end = layout.points.get(to);
-    const d = edgePath(start, end, compact, end.depth > start.depth + 1 ? rail++ : 0);
+    const d = edgePath(start, end, layout.vertical, end.depth > start.depth + 1 ? rail++ : 0);
     return `<path class="kg-edge ${kind === 'required' ? 'kg-required' : 'kg-recommended'}" data-kg-from="${escapeHtml(from)}" data-kg-to="${escapeHtml(to)}" d="${d}" vector-effect="non-scaling-stroke" marker-end="url(#${marker})"/>`;
   });
   return `<svg class="kg-edges kg-edges-${name}" aria-hidden="true" viewBox="0 0 1000 ${layout.height}" preserveAspectRatio="none">
-    <defs><marker id="${marker}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="${compact ? 8 : 12}" markerHeight="${compact ? 22 : 8}" markerUnits="userSpaceOnUse" orient="auto" preserveAspectRatio="none"><path d="M0 0 8 4 0 8 2 4z" fill="#405d89"/></marker></defs>
+    <defs><marker id="${marker}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="${layout.vertical ? 8 : 12}" markerHeight="${layout.vertical ? 22 : 8}" markerUnits="userSpaceOnUse" orient="auto" preserveAspectRatio="none"><path d="M0 0 8 4 0 8 2 4z" fill="#405d89"/></marker></defs>
     ${paths.join('')}</svg>`;
 }
 
@@ -152,10 +155,10 @@ export function renderKnowledgeGraph(graph, selectedId) {
   const details = nodes.map(node => nodeDetail(node, graph, node.id === initial.id, byId, `${base}-${escapeHtml(node.id)}`));
   const hasRequired = edges.some(edge => edge.kind === 'required');
   const hasSuggested = edges.some(edge => edge.kind !== 'required');
-  return `<div class="kg" data-knowledge-graph>
+  return `<div class="kg" data-knowledge-graph${compact.vertical ? '' : ' data-kg-dense'}>
     <div class="kg-workarea"><div class="kg-diagram" role="group" aria-label="${escapeHtml(graph.title)} 知识依赖图">
       <div class="kg-legend">${edges.length ? '<span>箭头从准备指向后续</span>' : ''}${hasRequired ? '<span><i class="kg-keyline"></i>前置</span>' : ''}${hasSuggested ? '<span><i class="kg-keyline kg-key-suggested"></i>建议准备</span>' : ''}</div>
-      <div class="kg-stage" style="--wide-height:${wide.height}px;--small-height:${compact.height}px">
+      <div class="kg-stage" style="--wide-height:${wide.height}px;--small-height:${compact.height}px;--small-min-width:${compact.vertical ? 0 : levels.length * 132}px">
         ${drawEdges(wide, edges, false, base)}${drawEdges(compact, edges, true, base)}${buttons.join('')}
       </div>
     </div><div class="kg-inspector">${details.join('')}</div></div>

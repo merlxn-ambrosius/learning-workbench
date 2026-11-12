@@ -140,7 +140,7 @@ export function normalizeProgress(value) {
   output.micrograd = normalizeMicrograd(value.micrograd);
   output.agent = normalizeAgent(value.agent);
   const route = String(value.lastRoute ?? '');
-  if (/^#\/(home|learn(?:\/(?:agent|kl|micrograd))?|lab(?:\/(?:agent|kl))?|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
+  if (/^#\/(home|learn(?:\/(?:agent|kl|micrograd))?|lab(?:\/(?:agent|kl|range-queries))?|practice\/cph-(?:0[1-9]|[12][0-9]|30)|atlas(?:\/node\/[A-Z0-9]+)?|journal|sync)$/.test(route)) {
     output.lastRoute = route;
   }
   if (value.notes && typeof value.notes === 'object') {

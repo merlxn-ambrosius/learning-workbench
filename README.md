@@ -2,11 +2,15 @@
 
 [打开学习工作台](https://merlxn-ambrosius.github.io/learning-workbench/) · [项目现状](PROJECT_STATE.md) · [重构审查与待定事项](REVIEW.md)
 
-从[学科探索](https://merlxn-ambrosius.github.io/learning-workbench/#/home)按领域进入，也可以在[课程目录](https://merlxn-ambrosius.github.io/learning-workbench/#/courses)搜索。知识图谱分为板块图和课内图：前者连接课程，后者连接具体材料与活动。点选一个节点，可查看需要哪些知识、为什么有用、可以继续学什么。跨学科课程共用一个地址，最多三个学科标签。物理学与工程学已预留入口，有内容后再开放活动。
+从[学科探索](https://merlxn-ambrosius.github.io/learning-workbench/#/home)按领域进入，也可以在[课程目录](https://merlxn-ambrosius.github.io/learning-workbench/#/courses)搜索。[全局知识星图](https://merlxn-ambrosius.github.io/learning-workbench/#/maps)连接所有已收录课程。学科和板块在同一张图上聚焦，每门课首页直接显示自己的先修和后续。从选中的课程可继续展开课内节点。点选一个节点，可查看需要哪些知识、为什么有用、可以继续学什么。跨学科课程共用一个地址，最多三个学科标签。物理学与工程学已预留入口，有内容后再开放活动。
 
 公开站点在页脚显示当前部署提交号。下载的旧预览保留生成时的内容。站内学习记录属于当前浏览器，支持手动导出和恢复。
 
-### 已有的站内活动
+### 竞赛算法板块
+
+[算法板块](https://merlxn-ambrosius.github.io/learning-workbench/#/block/algorithms)使用 [Antti Laaksonen 的公开手册](https://cses.fi/book.html) 2018 年 7 月 3 日草稿，覆盖三部分、30 章和 118 个编号小节。每章有定位到原书的选读入口与本站原创练习，课程间的先修和后续沿全图连接。可在[区间查询实验](https://merlxn-ambrosius.github.io/learning-workbench/#/lab/range-queries)比较同一组重叠块在不同合并规则下的结果。
+
+### 其他站内活动
 
 | 问题 | 在工作台能做什么 | 原材料 |
 | --- | --- | --- |
@@ -42,3 +46,5 @@ python3 tools/make_preview.py /tmp/LEARN-Workbench.html
 - 笔记使用浏览器键 `learn-workbench.progress.v1`。清理浏览器或迁移设备前，请导出 JSON。导入需确认，会替换当前记录。仓库和站点均不接收个人笔记、私密题库或凭据。
 
 项目代码使用 [MIT License](LICENSE)。外部课程、论文、作业和品牌各有其权利归属。
+
+星图使用的银河全景由 ESO/S. Brunier 拍摄，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 使用。图片在界面中裁切并降低亮度，课程节点与连线由本站绘制。[ESO 原图及署名](https://www.eso.org/public/images/eso0932a/)

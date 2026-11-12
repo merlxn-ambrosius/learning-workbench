@@ -1,4 +1,5 @@
 import { COURSE_LINKS } from './logic.mjs';
+import { handbookCourses, handbookEdges, handbookBlocks } from './handbook-catalog.mjs';
 
 export const subjects = [
   { id: 'math', title: '数学', description: '从变化率、线性关系与概率出发，推导能够检验的结论。' },
@@ -34,7 +35,7 @@ function recommends(from, to, reason) {
 
 // IDs identify courses across subject and block views. A course map selects actual
 // sections and activities; it does not promise to reproduce an entire external course.
-export const courses = [
+const existingCourses = [
   {
     id: 'agent', title: 'Agent 工程入门', subjectIds: ['ai', 'computing'], status: 'available',
     description: '从一条模型回复追到最终摘要，写出可以验证的处理规则。配套 Stanford CS329Z 作业的前两个问题。',
@@ -162,9 +163,15 @@ export const courses = [
   },
 ];
 
+export const courses = [...existingCourses, ...handbookCourses];
+
 // A single authored relationship is shared by every block where both ends appear.
 // Reasons name the particular task and prerequisite knowledge; no edge gates access.
-const courseEdges = [
+export const courseEdges = [
+  ...handbookEdges,
+  recommends('linear-algebra', 'cph-23', '矩阵快速幂把多步转移合并为乘法；熟悉矩阵乘法后，可以直接关注转移矩阵的构造。'),
+  recommends('probability', 'cph-24', '离散分布和期望为分析随机算法的平均开销提供了计算工具。'),
+  recommends('cph-16', 'micrograd', '实现反向传播时需要先处理后继再累加前驱的梯度；已掌握有向无环图的拓扑序会更容易设计这个遍历。'),
   recommends('python', 'contracts', '能读懂带参数和返回值的函数，更容易跟上软件规格示例。原课示例使用 TypeScript。'),
   requires('python', 'agent', '实现 Stanford 原作业需要会编写 Python 函数和分支。站内对照实验可以直接运行。'),
   recommends('contracts', 'agent', '理解程序的输入输出约定，便于解释一次模型回复该如何传给下一步。'),
@@ -185,6 +192,7 @@ function block(id, title, description, subjectIds, courseIds) {
 }
 
 export const blocks = [
+  ...handbookBlocks.map(b => block(b.id,b.title,b.description,b.subjectIds,b.courseIds)),
   block('foundations', '通用基础', '按目标选用大学基础课。从程序、微积分、线性代数和概率进入不同分支。',
     ['math', 'computing', 'ai', 'finance'], ['python', 'calculus', 'linear-algebra', 'probability', 'contracts', 'micrograd']),
   block('agents', 'Agent 工程', '从函数和软件规格出发，理解模型回复怎样成为可检查的程序行为。',
@@ -209,11 +217,15 @@ function normalizeQuery(text) {
 
 export function searchCourses(query = '', subjectId) {
   const words = normalizeQuery(query).split(/[\s,，]+/).filter(Boolean);
+  // Short ASCII abbreviations (AI, KL) must not match the middle of a longer name.
+  const matchers = words.map(word => /^[a-z]{1,2}$/.test(word)
+    ? new RegExp('(?:^|[^a-z0-9])'+word+'(?:$|[^a-z0-9])')
+    : word);
   const candidates = subjectId ? coursesForSubject(subjectId) : courses;
   return candidates.filter(course => {
     const names = subjects.filter(subject => course.subjectIds.includes(subject.id)).map(subject => subject.title);
     const text = [course.id, course.title, course.description, course.keywords, course.source?.label, ...course.subjectIds, ...names, ...course.lessons.map(node => node.title)].join(' ');
     const haystack = normalizeQuery(text);
-    return words.every(word => haystack.includes(word));
+    return matchers.every(matcher => typeof matcher === 'string' ? haystack.includes(matcher) : matcher.test(haystack));
   });
 }

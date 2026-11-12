@@ -1,4 +1,4 @@
-import { renderWorkspaceShell, platformPage, resultList, bindKnowledgeGraph, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
+import { renderWorkspaceShell, platformPage, resultList, bindPlatform, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
 import { renderAgentGuide, renderAgentLab, agentPolicyNames, agentScenarioNames } from './agent-view.mjs';
 import { renderKLGuide, renderKLLab, renderKLExplanation, renderKLMetrics, klAnswerNames } from './kl-view.mjs';
 import { escapeHtml, external, svg } from './html.mjs';
@@ -28,6 +28,10 @@ function persist(next = progress, options) {
 }
 function record(kind, summary, help = '未记录') {
   progress.evidence.push({kind, summary, help, date: new Date().toISOString()});
+  return persist();
+}
+function saveChapterAttempt(attempt) {
+  if (!progress.evidence.includes(attempt)) progress.evidence.push(attempt);
   return persist();
 }
 function showToast(message) {
@@ -181,7 +185,7 @@ function render() {
     route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():missingPage());
   const storageNotice = `<p class="warning-panel" id="storage-notice" role="status" ${progressStore.warning ? '' : 'hidden'}>${escapeHtml(progressStore.warning)}</p>`;
   $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + body, document.querySelector('meta[name="learn-revision"]')?.content);
-  if (route.startsWith('course/') || route.startsWith('block/')) bindKnowledgeGraph($('#page-content'));
+  bindPlatform(route, $('#page-content'), saveChapterAttempt);
   if (route === 'learn/micrograd') {
     mountMicrograd($('.mg-unit'), progress.micrograd, next => {
       progress.micrograd = next;
@@ -365,9 +369,17 @@ document.addEventListener('toggle', event=>{
   persist();
 }, true);
 function focusLinkedSection() {
-  const id = routeOptions().get('section');
-  if (!id || !isLearningUnit(getPath()) || !/^[a-z][a-z0-9-]{1,80}$/.test(id)) return false;
-  const target = document.getElementById(id);
+  const route=getPath();
+  const options=routeOptions();
+  const node=options.get('node');
+  let target;
+  if (route.startsWith('course/') && node && /^[a-zA-Z0-9._-]{1,80}$/.test(node)) {
+    target=document.getElementById('kg-course-'+route.slice(7)+'-'+node+'-title');
+  } else {
+    const id=options.get('section');
+    if (!id || !isLearningUnit(route) || !/^[a-z][a-z0-9-]{1,80}$/.test(id)) return false;
+    target=document.getElementById(id);
+  }
   if (!target || !target.closest('#page-content')) return false;
   target.setAttribute('tabindex','-1');
   target.focus({preventScroll:true});
