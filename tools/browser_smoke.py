@@ -36,6 +36,91 @@ def check_chinese_heading_font(context, page):
         session.detach()
 
 
+def exercise_seam_lab(page, base, width, screenshots, check_width):
+    url = base + "#/topic/segment-tree/boundary-summary"
+    page.goto(url)
+    lab = page.locator("[data-seam]")
+    expect(lab).to_be_visible()
+    prediction = lab.locator('[data-prediction="different"]')
+    reveal = lab.locator("[data-seam-reveal]")
+    flip = lab.locator("[data-seam-flip]")
+    explanation = lab.locator("[data-seam-explanation]")
+
+    def chosen_cells(row):
+        return lab.locator(f'[data-seam-row="{row}"] .seam-cell[data-chosen]')
+
+    expect(explanation).to_be_hidden()
+    expect(lab.locator(".seam-cell[data-chosen]")).to_have_count(0)
+    expect(page.locator(".study-solution code")).to_be_hidden()
+    check_width()
+    if screenshots and width in (320, 1280):
+        page.evaluate("window.scrollTo(0, 0)")
+        page.screenshot(path=screenshots / f"seam-prediction-{width}.png")
+
+    hint = lab.locator("[data-seam-hint]")
+    expect(hint).to_have_js_property("open", False)
+    hint.locator("summary").focus()
+    page.keyboard.press("Enter")
+    expect(hint).to_have_js_property("open", True)
+    expect(explanation).to_be_hidden()
+    page.keyboard.press("Enter")
+
+    prediction.focus()
+    page.keyboard.press("Space")
+    expect(prediction).to_have_attribute("aria-pressed", "true")
+    expect(explanation).to_be_hidden()
+    reveal.focus()
+    page.keyboard.press("Enter")
+    expect(reveal).to_be_focused()
+    expect(reveal).to_have_attribute("aria-expanded", "true")
+    expect(explanation).to_be_visible()
+    expect(explanation.locator("[data-seam-contributions]")).to_have_js_property("open", False)
+    expect(chosen_cells("A")).to_have_text(["5"])
+    expect(chosen_cells("B")).to_have_text(["5", "3"])
+    first_cells = lab.locator(".seam-array .seam-cell:first-child")
+    left_edges = first_cells.evaluate_all("(cells) => cells.map(el => el.getBoundingClientRect().left)")
+    assert len(left_edges) == 2 and abs(left_edges[0] - left_edges[1]) <= 1
+    feedback = lab.locator("[data-seam-feedback]")
+    expect(feedback).to_contain_text("你的判断与结果一致。")
+    expect(feedback).to_contain_text("A 的最大和为 5，B 为 8。")
+    check_width()
+    if screenshots and width in (320, 1280):
+        lab.screenshot(path=screenshots / f"seam-revealed-{width}.png")
+
+    flip.focus()
+    page.keyboard.press("Enter")
+    expect(flip).to_be_focused()
+    expect(prediction).to_have_attribute("aria-pressed", "false")
+    expect(reveal).to_have_attribute("aria-expanded", "false")
+    expect(explanation).to_be_hidden()
+    expect(lab.locator(".seam-cell[data-chosen]")).to_have_count(0)
+    prediction.click()
+    reveal.click()
+    expect(chosen_cells("A")).to_have_text(["5"])
+    expect(chosen_cells("B")).to_have_text(["5"])
+    expect(feedback).not_to_contain_text("你的判断与结果一致。")
+    expect(feedback).to_contain_text("A 的最大和为 5，B 为 5。")
+    check_width()
+    reveal.click()
+    expect(explanation).to_be_hidden()
+    expect(lab.locator(".seam-cell[data-chosen]")).to_have_count(0)
+
+    author = lab.locator("[data-seam-create]")
+    author.locator("summary").click()
+    entry = author.locator("input")
+    for given in ("0", "2"):
+        entry.fill(given)
+        entry.press("Enter")
+        expect(author.locator("output")).to_contain_text("5")
+        if given == "2":
+            expect(author.locator("output")).to_contain_text("7")
+    check_width()
+    page.locator(".study-tabs").get_by_role("link", name="证明与边界").click()
+    expect(page).to_have_url(url + "?view=proof")
+    expect(page.locator(".study-proof li").first).to_be_visible()
+    check_width()
+
+
 def exercise_study_reader(page, base, width, screenshots, check_width):
     shelf = page.locator(".study-shelf")
     if width == 1280:
@@ -337,6 +422,7 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
                 expect(note).to_have_value("合成测试 · 原稿")
 
             exercise_study_reader(page, base, width, screenshots, check_width)
+            exercise_seam_lab(page, base, width, screenshots, check_width)
             assert not errors, errors
             print(f"{width}px: platform, study reader, map and recovery journeys passed.")
 

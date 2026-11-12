@@ -27,3 +27,57 @@
 .study-choice-list{margin:1.65rem 0}.study-choice-list>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:.65rem}
 .study-choice{display:grid;align-content:start;gap:.45rem;background:#fff;border:1px solid #c8d0db;border-radius:5px;padding:.85rem 1rem;text-decoration:none;color:#28466e}
 .study-choice strong{display:flex;justify-content:space-between;gap:.6rem}.study-choice>span{color:#4d5c72;font-size:.9rem;line-height:1.7}.study-choice:hover{border-color:#5e73a4;background:#f4f7fb}
+
+/* On this spread the two arrays share one spatial scale and the same seam. */
+.study-seam-reader { max-width: 56rem; margin-inline: auto; }
+.study-seam-reader .study-layout { display: block; }
+.study-seam-reader .study-body { max-width: none; }
+.study-seam-reader .study-header { padding: 0; margin: 0 0 .9rem; border: 0; }
+.study-seam-reader .study-header h1 { margin: 0; font-size: clamp(1.6rem, 3vw, 2.45rem); }
+.study-seam-reader .crumbs { margin-bottom: .7rem; }
+.study-seam-reader .study-tabs { border-bottom-color: #d6dcd9; }
+.study-seam-reader .study-tabs a { font-size: .92rem; }
+.study-seam-reader .study-text { color: #23352f; }
+.seam-lab { margin: clamp(1.25rem,3vw,2.4rem) 0 1.4rem; }
+.study-text .seam-lab h2 { font-size: clamp(1.25rem, 2.2vw, 1.65rem); line-height: 1.45; margin: 0 0 .4rem; }
+.study-text .seam-prompt { max-width: 38em; }
+.seam-figure { margin: 1.1rem 0 .65rem; padding: clamp(.8rem,2vw,1.5rem); border: 1px solid #cfded7; border-radius: .55rem; background: #f0f5ef; color: #253d33; }
+.seam-figure figcaption { color: #455e52; font-size: .84rem; margin-bottom: .55rem; }
+.seam-row { display: grid; grid-template-columns: 1.4rem minmax(0,29rem) minmax(7rem,1fr); align-items: center; gap: .6rem; padding: .38rem 0; }
+.seam-name { color: #586a5f; font: 600 .92rem/1.4 ui-monospace,monospace; }
+.seam-array { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) .65rem repeat(2,minmax(0,1fr)); gap: .2rem; max-width: 29rem; }
+.seam-cell { text-align: center; padding: .25em .08em; font: 600 clamp(1.2rem,2.5vw,1.9rem)/1.4 ui-monospace,monospace; font-variant-numeric: tabular-nums; background: #fcfdfa; border-bottom: 2px solid #d5e0d8; }
+.seam-cell[data-chosen] { color: #174731; background: #c4dfc8; border-bottom: 3px solid #21613d; }
+.seam-divider { align-self: stretch; border-left: 2px dashed #936247; justify-self: center; width: 0; font-size: 0; }
+.seam-row-note { color: #263e32; font-size: .86rem; }
+.seam-row-note[hidden],.seam-explanation[hidden] { display: none; }
+.seam-hint { margin-block: .15rem .6rem; }
+.seam-hint summary,.seam-derivation summary { width: fit-content; }
+.seam-controls,.seam-predict { display: flex; flex-wrap: wrap; gap: .45rem; }
+.seam-controls { gap: .55rem 1rem; align-items: center; }
+.seam-controls button { font: inherit; font-size: .92rem; line-height: 1.3; min-height: 44px; border: 1px solid #a9b8af; color: #264637; border-radius: .4rem; padding: .55rem .9rem; background: #fff; cursor: pointer; }
+.seam-controls button:hover { background: #e4eee6; }
+.seam-predict button[aria-pressed="true"],.seam-flip[aria-pressed="true"] { background: #d7e7d8; border: 2px solid #315d46; }
+.seam-controls button.seam-reveal { color: #fff; background: #264a3b; border-color: #264a3b; }
+.seam-controls button:focus-visible,.seam-lab summary:focus-visible { outline: 3px solid #366abc; outline-offset: 3px; }
+.seam-feedback:empty { display: none; }
+.study-text p.seam-feedback { font-weight: 650; margin-top: .85rem; }
+.seam-explanation,.seam-derivation p,.study-text .seam-transfer { max-width: 40em; }
+.seam-derivation { padding: .15rem 0; border-top: 1px solid #cdd7d1; }
+.study-seam-reader .study-solution,.study-seam-reader .study-sources { padding: .15rem 0; border: 0; border-top: 1px solid #cdd7d1; border-radius: 0; background: transparent; }
+.study-seam-reader .study-text .seam-transfer { margin: 1.3rem 0 .25rem; }
+.seam-units nav { display: grid; gap: .55rem; }
+@media (max-width: 660px) {
+  .seam-row { grid-template-columns: 1.2rem minmax(0,1fr); gap: .25rem .45rem; }
+  .seam-row-note { grid-column: 2; }
+  .study-seam-reader .crumbs { gap: .35rem; font-size: .8rem; }
+  .seam-controls { gap: .5rem; }
+  .seam-controls button { padding-inline: .7rem; }
+}
+
+.seam-create { margin-top: 1rem; }
+.seam-create form { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .8rem; }
+.seam-create label,.seam-create output { flex-basis: 100%; }
+.seam-create input,.seam-create button { font: inherit; min-height: 44px; color: #294436; border: 1px solid #83998b; border-radius: .35rem; background: white; padding: .35rem .65rem; }
+.seam-create input { width: 6rem; }
+.seam-create output { font-weight: 650; }
