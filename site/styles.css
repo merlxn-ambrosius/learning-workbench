@@ -38,3 +38,24 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .sync-instructions{display:block;width:100%;min-height:225px;resize:vertical;background:#f7faf8;color:#334f56;border:1px solid #cfded7;border-radius:12px;padding:15px;font:12px/1.65 ui-monospace,Menlo,Consolas,monospace}
 .sync-steps{background:#f5f9f6;border:1px solid #e2eee7;border-radius:12px;padding:13px 16px;margin:16px 0}
 .sync-steps p{margin:7px 0}
+
+/* One controlled Agent comparison, keeping source evidence apart from routing. */
+.agent-unit{max-width:920px}
+.agent-unit h2{font-size:20px;margin:0 0 16px}
+.agent-unit p{line-height:1.85}
+.agent-unit select,.agent-unit textarea{display:block;width:100%;border:1px solid #bacfc7;border-radius:8px;padding:11px;background:#fff;color:var(--ink)}
+.agent-unit textarea{min-height:130px;resize:vertical}
+.agent-unit .field-label{margin-top:0}
+.agent-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.agent-pair>*,.agent-unit .stack>*{min-width:0}
+.agent-actions{margin-top:18px}
+.agent-table-scroll{overflow-x:auto}
+.agent-table-scroll caption{text-align:left;color:#52676b;font-size:12px;line-height:1.7;margin:8px 0}
+.agent-table-scroll th{text-align:left}
+.agent-table-scroll tbody th{font-size:12px;white-space:nowrap;border-bottom:1px solid var(--line)}
+.agent-table-scroll code{white-space:pre-wrap;overflow-wrap:anywhere}
+.agent-output{margin-top:20px}
+.agent-digest{margin:0;background:#f3f7f5;border:1px solid #d9e5df;border-radius:10px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.9 ui-monospace,monospace;color:#244338}
+.agent-unit summary{cursor:pointer;font-weight:700;line-height:1.8}
+.agent-transfer{margin-top:22px}
+@media(max-width:650px){.agent-pair{grid-template-columns:1fr}.agent-unit .case-table{min-width:410px}.agent-unit .actions .btn{flex:1 1 160px}}
