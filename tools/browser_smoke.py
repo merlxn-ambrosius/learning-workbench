@@ -63,6 +63,7 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             assert page.url.endswith("#/home")
 
             page.locator('.subject-card[href="#/subject/ai"]').click()
+            expect(page.get_by_role("heading", level=1)).to_have_text("人工智能")
             page.locator('#catalog-query').fill('CS329Z')
             expect(page.locator('#catalog-results .course-row')).to_have_count(1)
             page.locator('.subject-maps a[href^="#/block/agents"]').click()
@@ -187,6 +188,7 @@ def exercise_preview(browser, scratch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
+    parser.add_argument("--site-dir", type=Path, default=SITE, help="Serve this prepared release directory, or the source site by default.")
     parser.add_argument("--verify-cjk-font", action="store_true", help="Require Noto CJK glyphs in the Chinese heading.")
     args = parser.parse_args()
     if args.screenshots:
@@ -196,7 +198,7 @@ if __name__ == "__main__":
         parser.exit(1, "Install Google Chrome or Chromium before running this check.\n")
     with TemporaryDirectory() as scratch, sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=chrome)
-        handler = partial(SimpleHTTPRequestHandler, directory=SITE)
+        handler = partial(SimpleHTTPRequestHandler, directory=args.site_dir)
         with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()

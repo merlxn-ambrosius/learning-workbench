@@ -44,7 +44,7 @@ jobs:
       - name: Exercise learning and recovery flows in Chrome
         run: |
           python -m pip install playwright==1.62.0
-          python tools/browser_smoke.py --verify-cjk-font --screenshots "$RUNNER_TEMP/learn-review"
+          python tools/browser_smoke.py --site-dir "$RUNNER_TEMP/learn-pages" --verify-cjk-font --screenshots "$RUNNER_TEMP/learn-review"
       - name: Save disposable-profile layout previews
         if: always()
         uses: actions/upload-artifact@v4

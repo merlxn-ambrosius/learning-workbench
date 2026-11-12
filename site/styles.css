@@ -21,6 +21,7 @@ a:hover { text-decoration: underline; }
 ::selection { background: #cce7ce; }
 [hidden] { display: none !important; }
 .skip-link { position: fixed; z-index: 10; left: 1rem; top: -6rem; background: white; padding: .75rem; }
+.skip-link:not(:focus) { clip-path: inset(50%); width: 1px; height: 1px; padding: 0; overflow: hidden; }
 .skip-link:focus { top: .5rem; }
 .initial-load { padding: 3rem; }
 .mast { background: #173832; color: #f4f8eb; }
