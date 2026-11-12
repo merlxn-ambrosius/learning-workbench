@@ -16,6 +16,8 @@
 
 双向 Dijkstra 的[逐步实验](https://merlxn-ambrosius.github.io/learning-workbench/#/topic/shortest-paths/bidirectional)可以改变直达边的权重，检查“已经接通”和“可以停止”是否发生在同一步。专题阅读会记住最后访问的知识点；查看解答和点开外部题面不会生成通过记录。
 
+[拼接区间的最大子段和](https://merlxn-ambrosius.github.io/learning-workbench/#/topic/segment-tree/boundary-summary)是首个按“留下推导空间”重写的案例。可以先预测，查看两行实际取到的区间，改变右段后再检验自己的规则。[教学产品、讲课者与交互改版研究](DESIGN_SOURCES.md)记录对照、读者评价及下一步如何验证。
+
 ### 其他站内活动
 
 | 问题 | 在工作台能做什么 | 原材料 |
