@@ -21,7 +21,20 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 
 
-def exercise_platform(browser, base, scratch, screenshots):
+def check_chinese_heading_font(context, page):
+    session = context.new_cdp_session(page)
+    try:
+        session.send("DOM.enable")
+        session.send("CSS.enable")
+        document = session.send("DOM.getDocument")["root"]["nodeId"]
+        heading = session.send("DOM.querySelector", {"nodeId": document, "selector": "#workbench-title"})["nodeId"]
+        fonts = session.send("CSS.getPlatformFontsForNode", {"nodeId": heading})["fonts"]
+        assert any("Noto Sans CJK" in font["familyName"] and font["glyphCount"] >= 8 for font in fonts), fonts
+    finally:
+        session.detach()
+
+
+def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
     atlas = json.loads((SITE / "data/atlas.json").read_text(encoding="utf-8"))
     for width in (320, 390, 1280):
         with browser.new_context(viewport={"width": width, "height": 860}) as context:
@@ -37,6 +50,8 @@ def exercise_platform(browser, base, scratch, screenshots):
                 assert fits, f"Horizontal overflow at {width}px: {page.url}"
 
             check_width()
+            if verify_cjk_font:
+                check_chinese_heading_font(context, page)
             if screenshots:
                 page.screenshot(path=screenshots / f"home-{width}.png", full_page=True)
             page.keyboard.press("Tab")
@@ -131,6 +146,7 @@ def exercise_preview(browser, scratch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
+    parser.add_argument("--verify-cjk-font", action="store_true", help="Require Noto CJK glyphs in the Chinese heading.")
     args = parser.parse_args()
     if args.screenshots:
         args.screenshots.mkdir(parents=True, exist_ok=True)
@@ -144,7 +160,7 @@ if __name__ == "__main__":
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                exercise_platform(browser, f"http://127.0.0.1:{server.server_port}/", Path(scratch), args.screenshots)
+                exercise_platform(browser, f"http://127.0.0.1:{server.server_port}/", Path(scratch), args.screenshots, args.verify_cjk_font)
                 exercise_preview(browser, Path(scratch))
             finally:
                 server.shutdown()
