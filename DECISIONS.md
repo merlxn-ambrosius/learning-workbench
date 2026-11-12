@@ -14,3 +14,9 @@
 - D10: The micrograd bridge compares two programs at the same starting value and perturbation. Keep optional pre-measurement writing and post-measurement explanation separate for each condition. The KL lab also places the derivation behind an explicit choice. Record observable help context. Learning and transfer require independent learner work.
 
 - D11：Agent 补桥使用固定回复和固定解析器，比较 A（保留未分类）与 B（按 low 处理或不送入摘要）。解析状态与下游去向分列；回退规则不被当成新增分类证据。原课程 v26.1.0 的 P2 本来就要求 unknown 按 normal 处理，本站 high/low 示例不冒充官方合同。去掉不能影响执行的“策略预测”选择，不强制先答题。旧记录不改写，新记录只描述观察条件。交互是否优于静态成对案例仍待验证，见 PROJECT_STATE 的本次设计与检查。
+
+## 平台重构
+
+- D12：LEARN 项目承担 Workbench 的产品策划、教学试验选择、跨单元整合与交付验收。其他学习对话是贡献来源。共享决策落在仓库，产品取舍由用户审定；例行修复可直接进入待合并的 PR。
+- D13：首页以学习者要弄懂的问题组织入口。原课、练习和解释可以直接选择；保留既有 URL 和浏览器 v1 记录。首页不展示库存、点击次数或固定进度条作为成就。
+- D14：公开练习可记录预测、帮助和修订。对独立能力与保持/迁移的判断需要匹配的外部证据。Kernel 研究可指导设计；私有记录和受保护题目有各自的访问边界。

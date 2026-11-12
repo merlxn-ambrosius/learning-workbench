@@ -5,6 +5,9 @@ Read `README.md`, `PROJECT_STATE.md`, `DECISIONS.md`, and [`SYNC.md`](SYNC.md) b
 ## Mission
 Build a learner-controlled workspace supporting expert competence: derive, implement, debug, evaluate, and transfer mechanisms in new settings. Prefer strong external courses and authentic work over homemade breadth.
 
+## Product responsibility
+LEARN is the planning and integration owner of this platform. Use Workbench to test a small number of consequential learning interactions. A contributing chat can repair a reproducible defect or propose a lesson based on public materials. Bring curriculum priorities, data policy changes, and assessments of independent competence to the owner with a concrete alternative. Keep current status in `PROJECT_STATE.md` and durable decisions in `DECISIONS.md`. See [the outstanding product review](REVIEW.md).
+
 ## Working rules
 - **Source first:** identify the original lecture/assignment/code and version. Never claim a simulated demo implements an official grading contract.
 - **Small educational unit:** start with one actual learner difficulty. A useful plain explanation may beat a widget; only add interaction when it changes learning behavior.
@@ -16,7 +19,9 @@ Build a learner-controlled workspace supporting expert competence: derive, imple
 - **Do not build a platform for the sake of a platform.** Compare custom features against external course + ordinary conversation.
 
 ## Technical entrypoints
-- `site/index.html`, `site/styles.css`, `site/app.js`: current no-build bootstrap.
+- `site/index.html`, `site/styles.css`, `site/app.js`: no-build shell, routes and event wiring.
+- `site/workbench.mjs`: shared course/problem catalogue, navigation and legacy entry points.
+- `site/progress-store.mjs`: local write and recovery boundary.
 - `site/logic.mjs`: deterministic education mechanics; pure-function tests in `tests/`.
 - `site/data/atlas.json`: original Atlas v2 data preserved for optional navigation, not a complete curriculum.
 - `SYNC.md` and the website `Sync` page: handoff workflow for other conversations, with explicit private/public boundaries.

@@ -42,7 +42,12 @@ export function normalizeMicrograd(value) {
       if (trial && typeof trial === 'object') trials[key] = readTrial(trial);
     }
   }
-  const current = readTrial(trials[`${x}/${h}`] ?? value);
+  const key = `${x}/${h}`;
+  const validCondition = BASE_VALUES.includes(value?.x) && STEP_VALUES.includes(value?.h);
+  const current = readTrial(trials[key] ?? (validCondition ? value : null));
+  // Early v1 drafts used only top-level fields. Keep their original condition
+  // visible in the journal before the learner next visits the experiment.
+  if (current.ran || current.prediction || current.explanation) trials[key] = current;
   const help = [1, 2].includes(value?.help) ? value.help : 0;
   return {x, h, ...current, help, trials};
 }

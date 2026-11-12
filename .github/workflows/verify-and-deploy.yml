@@ -30,9 +30,24 @@ jobs:
           test -f site/data/atlas.json
           node --check site/app.js
           node --check site/logic.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exercise learning and recovery flows in Chrome
+        run: |
+          python -m pip install playwright==1.62.0
+          python tools/browser_smoke.py --screenshots "$RUNNER_TEMP/learn-review"
+      - name: Save disposable-profile layout previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbench-layouts
+          path: ${{ runner.temp }}/learn-review
+          if-no-files-found: ignore
+          retention-days: 7
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [verify]
     runs-on: ubuntu-latest
     permissions:

@@ -1,0 +1,17 @@
+.atlas-page { max-width: 60rem; }
+.atlas-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.atlas-filters input, .atlas-filters select { min-width: 0; }
+.atlas-route-intro, .atlas-reading .lesson-block p { line-height: 1.8; }
+.atlas-results { margin: 0; padding: 0; list-style: none; }
+ol.atlas-results { padding-inline-start: 2.3rem; list-style: decimal; }
+.atlas-results li { border-bottom: 1px solid var(--line); }
+.atlas-results .node-row { margin: 0; background: transparent; }
+.atlas-results .node-row:hover, .atlas-results .node-row:focus-visible { background: #edf5ef; }
+.atlas-results .node-row small { color: #475e62; }
+.atlas-reading { max-width: 50rem; }
+.atlas-location { margin: 1.75rem 0 .4rem; color: #50626a; font-size: .84rem; }
+.atlas-reading details { margin-top: 1rem; }
+.atlas-reading summary { cursor: pointer; }
+@media (max-width: 38rem) {
+  .atlas-filters { grid-template-columns: 1fr; gap: 0; }
+}
