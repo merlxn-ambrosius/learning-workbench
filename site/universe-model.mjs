@@ -18,7 +18,7 @@ export const universe = {
   nodes: courses.map(c => ({
     id:c.id, title:c.title, description:c.description, href:'#/course/'+c.id, groupId:homeGroup.get(c.id), status:c.status,
     children:c.lessons.map(s => ({
-      id:s.id, title:s.title, description:s.description, href:'#/course/'+c.id+'?node='+encodeURIComponent(s.id),
+      id:s.id, title:s.title, description:s.description, href:s.href?.startsWith('#/topic/') ? s.href : '#/course/'+c.id+'?node='+encodeURIComponent(s.id),
     })),
     childEdges:c.lessonEdges,
   })),

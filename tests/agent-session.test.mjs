@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import * as logic from '../site/logic.mjs';
+import {studyPage, bindStudy} from '../site/study-reader.mjs';
+import {studyRoute} from '../site/study-index.mjs';
 import * as workspace from '../site/workbench.mjs';
 import * as agentView from '../site/agent-view.mjs';
 import * as klView from '../site/kl-view.mjs';
@@ -36,7 +38,7 @@ async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
     body:{appendChild(node){elements.set(node.id,node)}},
   };
   const context = vm.createContext({
-    ...logic, ...workspace, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,URLSearchParams,
+    ...logic, ...workspace, studyPage, bindStudy, studyRoute, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,URLSearchParams,
     location:{hash:route},
     localStorage:{getItem(){return storage},setItem(key,value){if(blocked)throw new Error('blocked');storage=value}},
     confirm:()=>true,

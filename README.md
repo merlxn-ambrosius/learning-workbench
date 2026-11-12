@@ -10,6 +10,12 @@
 
 [算法板块](https://merlxn-ambrosius.github.io/learning-workbench/#/block/algorithms)使用 [Antti Laaksonen 的公开手册](https://cses.fi/book.html) 2018 年 7 月 3 日草稿，覆盖三部分、30 章和 118 个编号小节。每章有定位到原书的选读入口与本站原创练习，课程间的先修和后续沿全图连接。可在[区间查询实验](https://merlxn-ambrosius.github.io/learning-workbench/#/lab/range-queries)比较同一组重叠块在不同合并规则下的结果。
 
+### 算法精读
+
+[最短路径、动态规划、线段树和位运算](https://merlxn-ambrosius.github.io/learning-workbench/#/topics)共 25 个知识点，既能从专题目录进入，也能从原书章节与星图进入。「概览与实现」提供例子、伪代码、自拟反例或独立实现任务，C++17 实现默认收起。「证明与边界」给出不变量、推导、代价和适用条件。50 道不同的原站题目分别指向对应的决策或变式。
+
+双向 Dijkstra 的[逐步实验](https://merlxn-ambrosius.github.io/learning-workbench/#/topic/shortest-paths/bidirectional)可以改变直达边的权重，检查“已经接通”和“可以停止”是否发生在同一步。专题阅读会记住最后访问的知识点；查看解答和点开外部题面不会生成通过记录。
+
 ### 其他站内活动
 
 | 问题 | 在工作台能做什么 | 原材料 |
@@ -30,7 +36,7 @@ npm start
 npm test
 ```
 
-开发检查使用 Node.js 20+ 和 Python 3。需要可直接双击的单文件版本时，运行：
+开发检查使用 Node.js 20+、Python 3 和支持 C++17 的 g++。测试直接编译专题页中展示的参考实现。浏览正式网站无需安装编译器。需要可直接双击的单文件版本时，运行：
 
 ```sh
 python3 tools/make_preview.py /tmp/LEARN-Workbench.html

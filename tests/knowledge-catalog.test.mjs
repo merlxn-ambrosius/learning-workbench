@@ -1,3 +1,4 @@
+import {studyRoute} from '../site/study-index.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -94,6 +95,8 @@ test('catalogue states lead to distinct real activities, external material or a 
         if (route.startsWith('#/practice/')) {
           assert.equal(route, '#/practice/'+course.id);
           assert.ok(course.practice?.prompt && course.practice.accepted.length > 0);
+        } else if (route.startsWith('#/topic/')) {
+          assert.equal(studyRoute(route.slice(2))?.row[2], course.chapter);
         } else assert.ok(localActivities.has(route), route);
         if (query) {
           const section = new URLSearchParams(query).get('section');

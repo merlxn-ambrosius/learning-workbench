@@ -1,3 +1,5 @@
+import {studyPage,bindStudy} from './study-reader.mjs';
+import {studyRoute} from './study-index.mjs';
 import { renderWorkspaceShell, platformPage, resultList, bindPlatform, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
 import { renderAgentGuide, renderAgentLab, agentPolicyNames, agentScenarioNames } from './agent-view.mjs';
 import { renderKLGuide, renderKLLab, renderKLExplanation, renderKLMetrics, klAnswerNames } from './kl-view.mjs';
@@ -175,7 +177,9 @@ function render() {
   const route = getPath();
   if ((route === 'atlas' || route.startsWith('atlas/node/')) && atlasStatus === 'idle') loadAtlas();
   const options = routeOptions();
-  const platform = platformPage(route, progress.lastRoute, atlas, options);
+  const platform = studyPage(route, options, id=>{
+    if(studyRoute(getPath())?.track.id===id)render();
+  }) ?? platformPage(route, progress.lastRoute, atlas, options);
   const body = platform ?? (
     route==='learn/micrograd'?microgradPage():route==='learn/agent'?renderAgentGuide():route==='learn/kl'?renderKLGuide():
     route==='lab/agent'?renderAgentLab(progress.agent, progress.notes.agent, progressStore.warning):route==='lab/kl'?renderKLLab({
@@ -186,6 +190,7 @@ function render() {
   const storageNotice = `<p class="warning-panel" id="storage-notice" role="status" ${progressStore.warning ? '' : 'hidden'}>${escapeHtml(progressStore.warning)}</p>`;
   $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + body, document.querySelector('meta[name="learn-revision"]')?.content);
   bindPlatform(route, $('#page-content'), saveChapterAttempt);
+  if (studyRoute(route)) bindStudy($('#page-content'),route,render);
   if (route === 'learn/micrograd') {
     mountMicrograd($('.mg-unit'), progress.micrograd, next => {
       progress.micrograd = next;

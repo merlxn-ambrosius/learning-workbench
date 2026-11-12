@@ -4,6 +4,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const colors = ['#aab7ff','#f6c984','#7ce3ce','#e6a7cf','#a8d5ff','#d8b2ff','#a8dfa9'];
 const anchors = [[-440,-65],[-442,187],[-220,-255],[-178,263],[35,-10],[345,-200],[430,160]];
 const icons = {
+  window:'<path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/>',
   fit:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
   in:'<path d="M5 12h14M12 5v14"/>', out:'<path d="M5 12h14"/>',
   arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -70,6 +71,15 @@ export function zoomUniverseAt(camera,factor,anchor,width,height,minK,maxK) {
   return {k,x:camera.x+dx/camera.k-dx/k,y:camera.y+dy/camera.k-dy/k};
 }
 
+export function nearestStar(point, visiblePoints, radius=22) {
+  let closest=null, best=radius*radius;
+  for(const candidate of visiblePoints) {
+    const dx=point.x-candidate.x, dy=point.y-candidate.y, distance=dx*dx+dy*dy;
+    if(distance<best || (distance===best&&!closest)){closest=candidate;best=distance;}
+  }
+  return closest;
+}
+
 export function localNeighborhood(model,id) {
   if (!model.nodes.some(n=>n.id===id)) return [];
   const ids=new Set([id]);
@@ -126,13 +136,15 @@ export function renderKnowledgeUniverse(model, options={}) {
   const image=mode==='neighborhood'?'':'<img class="uv-galaxy" src="./assets/milky-way-eso0932a.jpg" alt="" aria-hidden="true" draggable="false">';
   const credit=mode==='neighborhood'?'':'<span class="uv-credit">星空摄影 <a href="https://www.eso.org/public/images/eso0932a/" target="_blank" rel="noopener noreferrer">ESO/S. Brunier</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></span>';
   const full=mode==='neighborhood' && linkOK(opts.fullHref) ? '<a class="uv-full" data-uv-full href="'+h(opts.fullHref)+'">'+icon('expand')+'在知识全图中展开 '+icon('arrow')+'</a>' : '';
-  return '<section class="uv uv-'+mode+'" data-knowledge-universe aria-label="'+(mode==='neighborhood'?'本课程的前置和后续课程':'可交互的全域知识图')+'">'+panelHeader(data,opts)+
+  const openWindow='<button type="button" class="uv-immersive" data-uv-immersive aria-haspopup="dialog">'+icon('window')+'大屏浏览星图</button>';
+  const dialog='<dialog class="uv-dialog" data-uv-dialog aria-label="大屏知识星图"><header class="uv-dialog-head"><strong>知识星图</strong><button type="button" data-uv-jump disabled>查看节点详情 ↓</button><button type="button" data-uv-close autofocus>退出大屏</button></header></dialog>';
+  return '<section class="uv uv-'+mode+'" data-knowledge-universe aria-label="'+(mode==='neighborhood'?'本课程的前置和后续课程':'可交互的全域知识图')+'"><div class="uv-workspace"><div class="uv-launchbar">'+panelHeader(data,opts)+openWindow+'</div>'+
     '<div class="uv-space"><div class="uv-plane">'+image+backdrop+
     '<svg class="uv-chart" data-uv-stage tabindex="0" role="group" aria-label="课程依赖图，可用方向键平移，加减键缩放，Home 适应视图"></svg>'+
     '<div class="uv-view-info"><span data-uv-caption></span><span data-uv-count></span></div>'+
     '<div class="uv-hud"><output data-uv-scale aria-label="相对全图缩放比例"></output>'+control('out','缩小')+control('in','放大')+control('fit','适应当前视图')+'</div></div>'+
     '<div class="uv-legend"><span>先修 → 后续</span><span><i></i>必要前置</span><span><i class="uv-dash"></i>建议准备</span><span class="uv-hint">拖动平移 · 滚轮或双指缩放</span>'+credit+'</div></div>'+
-    '<div data-uv-inspector class="uv-inspector"></div>'+full+
+    '<div data-uv-inspector class="uv-inspector"></div>'+full+'</div>'+dialog+
     '<script type="application/json" class="uv-config">'+serialized+'</script></section>';
 }
 
@@ -195,6 +207,11 @@ function bindOne(host) {
   const caption=host.querySelector('[data-uv-caption]');
   const count=host.querySelector('[data-uv-count]');
   const scaleOutput=host.querySelector('[data-uv-scale]');
+  const tray=host.querySelector('.uv-workspace');
+  const dialog=host.querySelector('[data-uv-dialog]');
+  const openWindow=host.querySelector('[data-uv-immersive]');
+  const closeWindow=dialog.querySelector('[data-uv-close]');
+  const jump=dialog.querySelector('[data-uv-jump]');
   const {positions,regions}=layoutUniverse(model);
   const nodes=new Map(model.nodes.map(n=>[n.id,n]));
   const homeId=options.mode==='neighborhood' ? options.selectedId : null;
@@ -244,7 +261,7 @@ function bindOne(host) {
   });
   function pointElement(n,p,isChild) {
     const group=el('g',{class:'uv-point',role:'button',tabindex:'-1','aria-label':n.title,[isChild?'data-uv-child':'data-uv-node']:n.id});
-    const target=el('circle',{r:15,fill:'transparent',class:'uv-hit'});
+    const target=el('circle',{r:22,fill:'transparent',class:'uv-hit'});
     const halo=el('circle',{r:10,fill:p.color,opacity:.15,class:'uv-halo'});
     const band=el('circle',{r:10,fill:'none',stroke:p.color,'stroke-width':1.35,class:'uv-ring'});
     const core=el('circle',{r:isChild?3.1:3.1+Math.min(2,(degree.get(n.id)||0)*.23),fill:p.color});
@@ -282,6 +299,7 @@ function bindOne(host) {
   }
   function updatePanel() {
     inspector.innerHTML=inspect(model,selection,expanded,childId,options.mode,homeId);
+    jump.disabled=!selection;
     if(locate) locate.value=selection;
     if(scopeControl) scopeControl.value=scope;
     const allBtn=host.querySelector('[data-uv-action="all"]');
@@ -460,13 +478,19 @@ function bindOne(host) {
     width=bounds.width;height=bounds.height;
     const portrait=width<460;
     if(portrait!==rotated){
-      camera=portrait?{x:-camera.y,y:camera.x,k:camera.k}:{x:camera.y,y:-camera.x,k:camera.k};
+      const turn=c=>portrait?{x:-c.y,y:c.x,k:c.k}:{x:c.y,y:-c.x,k:c.k};
+      camera=turn(camera);
+      if(returnCamera) returnCamera=turn(returnCamera);
       rotated=portrait;
     }
     svg.setAttribute('viewBox','0 0 '+width+' '+height);
     globalFit=viewportFit(positions.keys()).k;
     if(first) fit();
-    else {camera.k*=globalFit/previous;schedule();}
+    else {
+      camera.k*=globalFit/previous;
+      if(returnCamera) returnCamera.k*=globalFit/previous;
+      schedule();
+    }
   }
   optionsForVisible();changed();
   if(selection&&!homeId&&!scope)frameTarget=localNeighborhood(model,selection);
@@ -474,6 +498,23 @@ function bindOne(host) {
   if(typeof ResizeObserver!=='undefined') {
     const observer=new ResizeObserver(resized);observer.observe(svg);
   }
+  openWindow.addEventListener('click',()=>{
+    if(dialog.open) return;
+    dialog.append(tray);
+    dialog.showModal();
+    closeWindow.focus({preventScroll:true});
+    resized();
+  });
+  closeWindow.addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('close',()=>{
+    host.insertBefore(tray,dialog);
+    openWindow.focus({preventScroll:true});
+    resized();
+  });
+  jump.addEventListener('click',()=>{
+    const heading=inspector.querySelector('h3');
+    if(heading){heading.tabIndex=-1;heading.focus();heading.scrollIntoView({block:'center'});}
+  });
   const toggle=(action)=>{
     if(action==='all')chooseScope('');
     if(action==='fit')fit();
@@ -525,13 +566,26 @@ function bindOne(host) {
   }
   const pickSelector='[data-uv-node],[data-uv-child],[data-uv-group]';
   let cancelClick=false;
-  svg.addEventListener('click',event=>{if(!cancelClick)activate(event.target.closest(pickSelector));});
+  svg.addEventListener('click',event=>{
+    if(cancelClick && event.detail!==0) return;
+    const target=event.target.closest(pickSelector);
+    // Labels and keyboard activations carry an explicit target. Touching a
+    // cluster chooses the nearest visible center, independent of SVG order.
+    if(event.detail===0 || event.target.closest('.uv-name,.uv-region')){activate(target);return;}
+    const p=local(event);
+    const candidate=nearestStar(p, [...nodeEls,...childEls]
+      .filter(item=>item.group.style.display!=='none')
+      .map(item=>({group:item.group,...projection(item.p)}))
+      .filter(item=>item.x>=0&&item.x<=width&&item.y>=0&&item.y<=height));
+    if(candidate) activate(candidate.group);
+  });
   svg.addEventListener('keydown',event=>{
     const key=event.key;
     if(['Enter',' '].includes(key)){
       const target=event.target.closest(pickSelector);
       if(target){event.preventDefault();activate(target);}return;
     }
+    if(key==='Escape' && dialog.open) return; // Native modal close restores focus.
     if(!['+','=','-','Home','ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Escape'].includes(key))return;
     event.preventDefault();
     if(key==='Home')fit();

@@ -97,3 +97,41 @@
   .uv-chart {grid-row:2;}
   .uv-hud {position:relative;grid-row:3;inset:auto;justify-self:end;margin:.1rem .55rem .5rem;}
 }
+
+/* Keep the plotted area usable even when a course offers long text below it. */
+.uv-global,.uv-scope {width:min(96vw,1560px);margin-inline:calc(50% - min(48vw,780px));}
+.uv-global .uv-chart,.uv-scope .uv-chart {height:clamp(560px,73svh,850px);}
+.uv-neighborhood .uv-chart {height:clamp(300px,40svh,410px);}
+.uv-launchbar {display:flex;align-items:flex-end;justify-content:space-between;gap:.6rem;margin-bottom:.7rem;}
+.uv-launchbar .uv-toolbar {flex:1;min-width:0;margin:0;}
+.uv-neighborhood .uv-launchbar {justify-content:flex-end;}
+.uv-immersive,.uv-dialog-head button {display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:44px;border-radius:7px;padding:.5rem .85rem;font-weight:650;white-space:nowrap;cursor:pointer;}
+.uv-immersive {background:#233f78;color:#fff;border:1px solid #233f78;}
+.uv-immersive:hover {background:#172d5b;}
+.uv-hud button {width:44px;height:44px;}
+.uv-point .uv-name,.uv-region text {pointer-events:visiblePainted;}
+.uv-dialog {box-sizing:border-box;position:fixed;inset:0;width:100%;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#f8f8f4;color:#25344f;overflow:auto;overscroll-behavior:contain;}
+.uv-dialog::backdrop {background:#081121;}
+.uv-dialog-head {position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:.6rem;padding:.5rem max(.75rem,env(safe-area-inset-right)) .5rem max(.75rem,env(safe-area-inset-left));background:#111e35;color:#fff;box-shadow:0 1px 0 #324567;}
+.uv-dialog-head strong {margin-right:auto;font-size:1.05rem;}
+.uv-dialog-head button {color:#fff;background:#253956;border:1px solid #617695;font-size:.86rem;}
+.uv-dialog-head button:disabled {display:none;}
+.uv-dialog-head button[data-uv-close] {background:#edf3ff;color:#1e3765;}
+.uv-dialog .uv-workspace {padding:.7rem max(.7rem,env(safe-area-inset-right)) 1.4rem max(.7rem,env(safe-area-inset-left));}
+.uv-dialog .uv-immersive,.uv-dialog .uv-launchbar:has(> .uv-immersive:only-child) {display:none;}
+.uv-dialog .uv-chart {height:max(330px,calc(100dvh - 195px));}
+.uv-dialog .uv-inspector {margin-inline:.3rem;}
+@media(max-width:760px) {
+  .uv-global,.uv-scope {width:calc(100vw - 16px);margin-inline:calc(50% - 50vw + 8px);}
+  .uv-global .uv-chart,.uv-scope .uv-chart {height:clamp(415px,62svh,640px);}
+  .uv-neighborhood .uv-chart {height:clamp(275px,40svh,350px);}
+  .uv-launchbar {align-items:flex-end;flex-wrap:wrap;}
+  .uv-launchbar .uv-toolbar {flex:1 1 100%;}
+  .uv-immersive {font-size:.85rem;}
+  .uv-dialog .uv-chart {height:max(370px,68dvh);}
+  .uv-dialog-head {gap:.35rem;}
+  .uv-dialog-head button {font-size:.76rem;padding:.4rem .55rem;}
+}
+@media(max-height:540px) and (orientation:landscape) {
+  .uv-dialog .uv-chart {height:max(210px,calc(100dvh - 148px));}
+}

@@ -17,7 +17,10 @@ test('one map spans every canonical course and retains edges across subject and 
   for (const n of universe.nodes) {
     const c = courses.find(c=>c.id===n.id);
     assert.deepEqual(n.children.map(l=>l.id),c.lessons.map(l=>l.id));
-    assert.ok(n.children.every(l=>l.href.startsWith('#/course/'+n.id+'?node=')));
+    for (const l of n.children) {
+      const href=c.lessons.find(s=>s.id===l.id).href;
+      assert.equal(l.href,href?.startsWith('#/topic/')?href:'#/course/'+n.id+'?node='+l.id);
+    }
   }
 });
 

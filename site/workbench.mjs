@@ -1,3 +1,5 @@
+import {tracks,studyRoute,studyPath} from './study-index.mjs';
+import {studyShelf} from './study-reader.mjs';
 import { subjects, courses, blocks, coursesForSubject, blocksForSubject, searchCourses } from './knowledge-catalog.mjs';
 import { renderKnowledgeGraph, bindKnowledgeGraph } from './knowledge-graphs.mjs';
 import { escapeHtml as h } from './html.mjs';
@@ -36,8 +38,11 @@ function subjectArt(id) {
   return '<svg class="subject-art" aria-hidden="true" viewBox="0 0 130 110" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">' + (g[id] || '') + '</svg>';
 }
 const homeTitles = {home:'学科探索', courses:'课程目录', learn:'课程目录', lab:'课程目录', maps:'知识图谱', atlas:'专题练习索引', journal:'学习记录', sync:'协作与备份'};
-export function isLearningUnit(path) { return activityCourses.has(path); }
+export function isLearningUnit(path) { return activityCourses.has(path) || Boolean(studyRoute(path) && path.split('/').length===3); }
 export function routeTitle(path, atlas) {
+  if (path === 'topics') return '算法专题';
+  const study=studyRoute(path);
+  if(study)return path===studyPath(study.track.id)?study.track.title:study.track.title+' · '+study.row[1];
   if (homeTitles[path]) return homeTitles[path];
   if (activityCourses.has(path)) return activityCourses.get(path).title;
   const [area,id] = path.split('/');
@@ -46,7 +51,7 @@ export function routeTitle(path, atlas) {
 }
 export function renderWorkspaceShell(path, body, revision) {
   const area = path.split('/')[0];
-  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', learn:'courses', lab:'courses', practice:'courses'})[area] || area;
+  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', topic:'courses', topics:'courses', learn:'courses', lab:'courses', practice:'courses'})[area] || area;
   const nav = navItems.map(([key, title]) => `<a href="#/${key}" ${active === key ? 'aria-current="' + (key === path ? 'page':'location') + '"' : ''}>${title}</a>`).join('');
   const course = activityCourses.get(path);
   const crumb = course ? breadcrumbs([['课程目录','#/courses'],[course.title,url('course/'+course.id)],['学习活动']]) : '';
@@ -62,7 +67,7 @@ function searchForm(q, home=false) {
 function resumeLink(lastRoute, atlas) {
   const path = String(lastRoute || '').replace(/^#\//,'');
   const nodeId = /^atlas\/node\/([A-Z][0-9]{2})$/.exec(path)?.[1];
-  const last = activityCourses.get(path)?.title || (nodeId && (atlas?.nodes.find(n=>n.id===nodeId)?.title || nodeId));
+  const last = studyRoute(path)?.row[1] || activityCourses.get(path)?.title || (nodeId && (atlas?.nodes.find(n=>n.id===nodeId)?.title || nodeId));
   return last ? `<a class="resume-link" href="${h(url(path))}">继续上次学习 · ${h(last)} →</a>` : '';
 }
 function subjectCard(s) {
@@ -106,12 +111,13 @@ function maps(scopeId,selected) {
   const scope = universe.scopes.find(s=>s.id===scopeId);
   return `<header class="page-intro universe-intro"><h1>知识星图</h1><p>每颗星是一门课程。选择课程查看先修与后续，也可以展开它的学习节点。</p></header>
     ${renderKnowledgeUniverse(universe,{mode:'global',scopeId:scope?.id,selectedId:selected})}
-    <div class="map-directory-links"><a href="#/block/algorithms">竞赛算法 · 手册与章节目录 →</a><a href="#/atlas">早期专题练习索引 →</a></div>`;
+    <div class="map-directory-links"><a href="#/topics">四个算法精读专题 →</a><a href="#/block/algorithms">竞赛算法 · 手册与章节目录 →</a><a href="#/atlas">早期专题练习索引 →</a></div>`;
 }
 function blockPage(b, s, selected) {
   const isBook = b.id === 'algorithms' || b.id.startsWith('alg-');
   return `${breadcrumbs([s?[s.title,'#/subject/'+s.id]:['知识星图','#/maps'],[b.title]])}
     <header class="page-intro universe-intro"><h1>${h(b.title)}</h1><p>${h(b.description)}</p></header>
+    ${isBook ? studyShelf(tracks.filter(t=>t.units.some(row=>b.courseIds.includes('cph-'+String(row[2]).padStart(2,'0'))))) : ''}
     ${renderKnowledgeUniverse(universe,{mode:'scope',scopeId:b.id,selectedId:selected})}
     ${isBook ? chapterList(b) : ''}`;
 }
@@ -119,10 +125,13 @@ function coursePage(c, b, s, selected) {
   const back = b ? [b.title,url('block/'+b.id,{subject:s?.id,node:c.id})] : s?[s.title,'#/subject/'+s.id]:['课程目录','#/courses'];
   const nodes = c.lessons.map(n=>({...n,actionLabel:n.href?.startsWith('https:')?'打开原始材料':'进入学习活动'}));
   const mapHref = url('maps',{node:c.id});
+  const study=tracks.find(t=>t.units.some(row=>row[2]===c.chapter));
+  const studyUnit=study?.units.find(row=>row[2]===c.chapter);
+  const studyLink=study ? `<a class="map-link-button" data-study-link href="#/${studyPath(study.id,studyUnit[0])}">进入${h(study.title)}精读 →</a>` : '';
   const directTask = c.practice ? `<a class="map-link-button" href="#/practice/${h(c.id)}">尝试本章练习 →</a>` : '';
   const chapter = c.chapter ? `<span class="chapter-kicker">Competitive Programmer’s Handbook · 第 ${c.chapter} 章</span>` : '';
   return `${breadcrumbs([back,[c.title]])}<header class="page-intro"><div class="course-meta">${status(c)}${tags(c)}${chapter}</div><h1>${h(c.title)}</h1><p>${h(c.description)}</p>
-    <div class="course-actions">${directTask}${c.id==='cph-09'?'<a class="map-link-button" href="#/lab/range-queries">打开区间查询实验 →</a>':''}
+    <div class="course-actions">${studyLink}${directTask}${c.id==='cph-09'?'<a class="map-link-button" href="#/lab/range-queries">打开区间查询实验 →</a>':''}
     ${c.source?`<a href="${h(c.source.url)}" target="_blank" rel="noopener noreferrer">${h(c.source.label)} ↗</a>`:''}</div></header>
     <section class="course-surround"><h2>这门课在知识星图中的位置</h2>
     ${renderKnowledgeUniverse(universe,{mode:'neighborhood',selectedId:c.id,fullHref:mapHref})}</section>

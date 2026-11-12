@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { layoutUniverse,frameUniverse,zoomUniverseAt,localNeighborhood,renderKnowledgeUniverse,renderUniverseThumbnail } from '../site/knowledge-universe.mjs';
+import { nearestStar,layoutUniverse,frameUniverse,zoomUniverseAt,localNeighborhood,renderKnowledgeUniverse,renderUniverseThumbnail } from '../site/knowledge-universe.mjs';
 
 const groups=[{id:'a',title:'基础'},{id:'b',title:'树结构'},{id:'c',title:'图'}];
 const nodes=['v','w','x','y','z'].map((id,i)=>({
@@ -55,4 +55,25 @@ test('configuration cannot terminate its non-executable script or leak extra aut
   assert.doesNotMatch(html,/<img src=x|PRIVATE-FIELD/);
   const data=JSON.parse(html.match(/class="uv-config">(.*?)<\/script>/s)[1]);
   assert.equal(data.model.nodes[0].title,malicious.title);
+});
+
+
+test('tapping overlapping stars picks the nearest visible center, with a 44px diameter target', () => {
+  const a={x:10,y:10}, b={x:19,y:10};
+  assert.equal(nearestStar({x:12,y:11},[a,b]),a);
+  assert.equal(nearestStar({x:12,y:11},[b,a]),a);
+  assert.equal(nearestStar({x:18,y:10},[a,b]),b);
+  assert.equal(nearestStar({x:41,y:10},[a,b]),b);
+  assert.equal(nearestStar({x:42,y:10},[a,b]),null);
+  assert.equal(nearestStar({x:10,y:10},[]),null);
+});
+
+test('global, scope and course maps expose an initially closed native large-view dialog', () => {
+  for (const mode of ['global','scope','neighborhood']) {
+    const markup=renderKnowledgeUniverse(model,{mode,scopeId:'slice',selectedId:'x'});
+    assert.match(markup,/data-uv-immersive aria-haspopup="dialog"/);
+    assert.match(markup,/<dialog class="uv-dialog" data-uv-dialog aria-label="大屏知识星图">/);
+    assert.match(markup,/data-uv-close autofocus/);
+    assert.equal((markup.match(/data-uv-stage/g)||[]).length,1);
+  }
 });
