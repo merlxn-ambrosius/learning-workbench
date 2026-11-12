@@ -90,3 +90,10 @@
 .uv-galaxy {position:absolute;inset:0;pointer-events:none;user-select:none;width:100%;height:100%;object-fit:cover;object-position:center;opacity:.32;filter:saturate(.7) contrast(1.08);}
 .uv-legend .uv-credit {display:inline;font-size:.67rem;color:#9daec9;}
 .uv-credit a {color:#bdcde8;}
+
+@media(max-width:460px) {
+  .uv-plane {display:grid;grid-template-columns:minmax(0,1fr);}
+  .uv-view-info {position:relative;grid-row:1;inset:auto;max-width:100%;padding:.6rem .7rem .15rem;}
+  .uv-chart {grid-row:2;}
+  .uv-hud {position:relative;grid-row:3;inset:auto;justify-self:end;margin:.1rem .55rem .5rem;}
+}

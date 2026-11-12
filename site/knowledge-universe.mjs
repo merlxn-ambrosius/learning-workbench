@@ -329,7 +329,12 @@ function bindOne(host) {
       if(incident || homeId || (!selection && ratio>1.6)) path.setAttribute('marker-end','url(#'+markerId+')');
       else path.removeAttribute('marker-end');
     }
-    const boxes=[];
+    // Leave the center of each selectable star visible when placing labels.
+    const boxes = [...(expanded ? [positions.get(selection), ...subPositions.values()] :
+      [...visible].map(id => positions.get(id)))].filter(Boolean).map(point => {
+        const p=projection(point);
+        return {x:p.x-2,y:p.y-2,w:4,h:4};
+      });
     const fits=(b)=>b.x>=3&&b.y>=3&&b.x+b.w<w-3&&b.y+b.h<hgt-3 &&
       !boxes.some(c=>b.x<c.x+c.w+4&&b.x+b.w+4>c.x&&b.y<c.y+c.h+3&&b.y+b.h+3>c.y);
     for(const r of regions) {
@@ -339,10 +344,17 @@ function bindOne(host) {
       haze.style.display=on?'':'none';haze.setAttribute('cx',p.x);haze.setAttribute('cy',p.y);
       haze.setAttribute('rx',Math.min(700,Math.max(68,r.glow*camera.k*1.8)));
       haze.setAttribute('ry',Math.min(420,Math.max(45,r.glow*camera.k*1.05)));
-      const box={x:lp.x-8,y:lp.y-12,w:r.title.length*12+20,h:18};
-      const show=on&&!homeId&&!expanded&&(ratio<1.65||scope)&&fits(box);
-      label.style.display=show?'':'none';
-      if(show){label.setAttribute('transform','translate('+lp.x+' '+lp.y+')');boxes.push(box);}
+      const labelWidth=r.title.length*12+23;
+      const candidates=[[0,0],[-labelWidth/2,-12],[-labelWidth+16,-2],[5,18]];
+      let placed;
+      if(on&&!homeId&&!expanded&&(ratio<1.65||scope)) {
+        for(const [dx,dy] of candidates) {
+          const box={x:lp.x+dx-5,y:lp.y+dy-10,w:labelWidth,h:17};
+          if(fits(box)){placed=box;break;}
+        }
+      }
+      label.style.display=placed?'':'none';
+      if(placed){label.setAttribute('transform','translate('+(placed.x+5)+' '+(placed.y+10)+')');boxes.push(placed);}
     }
     for(const rec of childPaths) {
       const a=projection(rec.from),b=projection(rec.to);
@@ -371,7 +383,7 @@ function bindOne(host) {
     const firstOfRegion=new Set();
     for(const {item,p,child,selected} of ordered) {
       const limited=!scope&&!homeId&&!child&&!expanded&&ratio<1.45&&!selected&&!connected.has(item.n.id);
-      if(limited&&firstOfRegion.has(item.p.group))continue;
+      if(limited&&(width<420 || firstOfRegion.has(item.p.group)))continue;
       const txt=item.n.title;
       const cw=Array.from(txt).reduce((sum,c)=>sum+(/[\x00-\x7F]/u.test(c)?7.2:12.5),0);
       const offsets=[[12,3],[-cw-12,3],[-cw/2,20],[-cw/2,-12]];
