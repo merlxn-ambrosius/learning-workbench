@@ -28,9 +28,9 @@ def check_chinese_heading_font(context, page):
         session.send("DOM.enable")
         session.send("CSS.enable")
         document = session.send("DOM.getDocument")["root"]["nodeId"]
-        heading = session.send("DOM.querySelector", {"nodeId": document, "selector": "#workbench-title"})["nodeId"]
+        heading = session.send("DOM.querySelector", {"nodeId": document, "selector": ".xp-welcome h1"})["nodeId"]
         fonts = session.send("CSS.getPlatformFontsForNode", {"nodeId": heading})["fonts"]
-        han = len(re.findall(r"[\u3400-\u9fff]", page.locator("#workbench-title").inner_text()))
+        han = len(re.findall(r"[\u3400-\u9fff]", page.locator(".xp-welcome h1").inner_text()))
         assert han and sum(f["glyphCount"] for f in fonts if "Noto Sans CJK" in f["familyName"]) >= han, fonts
     finally:
         session.detach()
@@ -122,7 +122,7 @@ def exercise_seam_lab(page, base, width, screenshots, check_width):
 
 
 def exercise_study_reader(page, base, width, screenshots, check_width):
-    shelf = page.locator(".study-shelf")
+    shelf = page.locator(".xp-topic-feature")
     if width == 1280:
         tracks = [("shortest-paths", "最短路径", "deque"), ("dynamic-programming", "动态规划", "state-dag"),
                   ("segment-tree", "线段树", "ordered-fold"), ("bit-manipulation", "位运算", "bit-partition")]
@@ -144,7 +144,7 @@ def exercise_study_reader(page, base, width, screenshots, check_width):
     # Entry via the original chapter and its topic affordance, then choose a
     # reading mode and follow an actual relationship to another subject.
     page.goto(base + "#/course/cph-07")
-    page.locator("[data-study-link]").first.click()
+    page.locator('.xp-unit-grid a[href="#/topic/dynamic-programming/state-dag"]').click()
     expect(page.locator(".study-subject")).to_have_text("动态规划")
     overview_hash = "#/topic/dynamic-programming/knapsack"
     if width == 320:
@@ -212,8 +212,9 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(base + "#/home")
-            expect(page.locator(".subject-card")).to_have_count(6)
-            expect(page.locator(".resume-link")).to_have_count(0)
+            expect(page.locator(".xp-subject-links a")).to_have_count(6)
+            expect(page.locator(".xp-continue")).to_have_count(1)
+            expect(page.locator(".xp-continue")).to_contain_text("开始第一讲")
 
             def check_width():
                 fits = page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
@@ -236,11 +237,13 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             expect(page.locator("#page-content")).to_be_focused()
             assert page.url.endswith("#/home")
 
-            page.locator('.subject-card[href="#/subject/ai"]').click()
+            page.locator('.xp-subject-links a[href="#/subject/ai"]').click()
             expect(page.get_by_role("heading", level=1)).to_have_text("人工智能")
             page.locator('#catalog-query').fill('CS329Z')
-            expect(page.locator('#catalog-results .course-row')).to_have_count(1)
-            page.locator('.subject-maps a[href^="#/block/agents"]').click()
+            expect(page.locator('#catalog-results .xp-path-card')).to_have_count(1)
+            # The preserved global graph is a compatibility surface. Its real
+            # camera, prerequisites and node actions remain independently tested.
+            page.goto(base + '#/maps?legacy=1&scope=agents')
             page.locator('[data-uv-locate]').select_option('agent')
             inspector = page.locator('[data-uv-inspector]')
             expect(inspector).to_contain_text('Python')
@@ -249,37 +252,36 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
                 page.screenshot(path=screenshots / f"block-{width}.png", full_page=True)
             inspector.locator('a[data-uv-open]').click()
             expect(page).to_have_url(re.compile(r'#/course/agent'))
-            expect(page.locator('.course-surround [data-uv-inspector]')).to_contain_text('软件规格')
-            page.locator('[data-kg-node="experiment"]').click()
-            expect(page.locator('.kg-detail:visible')).to_contain_text("处理规则")
+            expect(page.locator('.xp-chapter')).to_contain_text('原课作业补桥')
+            expect(page.locator('.xp-unit-grid a[href="#/lab/agent"]')).to_contain_text("处理规则")
             check_width()
             if screenshots:
                 page.screenshot(path=screenshots / f"course-{width}.png", full_page=True)
-            page.locator('.kg-detail:visible .kg-open').click()
+            page.locator('.xp-unit-grid a[href="#/lab/agent"]').click()
             page.locator("#agent-policy").select_option("drop")
             page.locator("#agent-run").click()
             expect(page.locator("#agent-result")).to_be_focused()
             expect(page.locator("#agent-result")).to_contain_text("B · 摘要输入（2 条）")
             check_width()
-            page.locator('nav a[href="#/home"]').click()
-            expect(page.locator(".resume-link")).to_have_attribute("href", "#/lab/agent")
+            page.locator('nav a[href="#/home"]').first.click()
+            expect(page.locator('.world-return a[href="#/lab/agent"]')).to_be_visible()
 
             page.locator("#catalog-query").fill("ＫＬ")
             page.locator("#catalog-search-form button").click()
-            expect(page.locator("#catalog-results .course-row")).to_have_count(1)
-            page.locator("#catalog-results h3 a").click()
+            expect(page.locator("#catalog-results .xp-path-card")).to_have_count(1)
+            page.locator('#catalog-results .xp-path-card[href="#/course/kl"]').click()
             expect(page).to_have_url(re.compile(r'#/course/kl'))
             page.goto(base + "#/subject/physics")
-            expect(page.locator(".catalog-empty")).to_contain_text("还没有收录课程")
+            expect(page.locator(".xp-empty")).to_contain_text("还没有匹配的课程")
             page.goto(base + "#/course/micrograd?node=build")
-            page.locator('.kg-detail:visible .kg-open').click()
+            page.locator('.xp-unit-grid a[href="#/learn/micrograd?section=mg-build-title"]').click()
             expect(page.locator('#mg-build-title')).to_be_focused()
 
             page.goto(base + "#/block/foundations")
             check_width()
             if screenshots:
                 page.screenshot(path=screenshots / f"foundations-{width}.png", full_page=True)
-            page.goto(base + "#/maps")
+            page.goto(base + "#/maps?legacy=1")
             chart = page.locator('[data-uv-stage]')
             expect(chart.locator('[data-uv-node]')).to_have_count(40)
             if screenshots:
@@ -348,9 +350,9 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             expect(page.locator('[data-uv-child]').first).to_be_visible()
             page.locator('[data-uv-action="collapse"]').click()
             page.locator('[data-uv-inspector] a[data-uv-open]').click()
-            expect(page.locator('.course-surround [data-uv-full]')).to_be_visible()
-            expect(page.locator('.course-contents')).to_be_visible()
-            page.locator('.course-actions a[href="#/lab/range-queries"]').click()
+            expect(page.locator('.xp-chapter')).to_be_visible()
+            expect(page.locator('.xp-crumbs a[href="#/course/competitive-programmers-handbook"]')).to_be_visible()
+            page.locator('.xp-unit-grid a[href="#/lab/range-queries"]').click()
             page.locator('#rq-operation').select_option('sum')
             page.locator('#rq-run').click()
             expect(page.locator('#rq-result')).to_contain_text('不同结果')
@@ -360,11 +362,11 @@ def exercise_platform(browser, base, scratch, screenshots, verify_cjk_font):
             check_width()
             if width == 320:
                 page.goto(base + "#/course/cph-07?node=s1")
-                first_lesson = page.locator('.kg-node[data-kg-node="s1"]')
+                first_lesson = page.locator('.xp-unit-card#lesson-s1')
                 assert first_lesson.bounding_box()['width'] >= 90, "Compact lesson cards must leave room for a readable title"
-                expect(page.locator('.kg-detail:visible')).to_contain_text('找零')
+                expect(first_lesson).to_contain_text('找零')
                 if screenshots:
-                    page.locator('.course-contents').screenshot(path=screenshots / "chapter-7-mobile.png")
+                    page.locator('.xp-unit-grid').screenshot(path=screenshots / "chapter-7-mobile.png")
             page.goto(base + "#/practice/cph-09")
             page.locator('#chapter-answer').fill('wrong')
             page.locator('.practice-form button').click()
@@ -435,8 +437,8 @@ def exercise_preview(browser, scratch):
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(output.as_uri() + "#/home")
-        page.locator('.subject-card[href="#/subject/ai"]').click()
-        page.locator('.subject-maps a[href^="#/block/agents"]').click()
+        page.locator('.xp-subject-links a[href="#/subject/ai"]').click()
+        page.goto(output.as_uri() + '#/maps?legacy=1&scope=agents')
         page.locator('[data-uv-locate]').select_option('agent')
         page.locator('[data-uv-inspector] a[data-uv-open]').click()
         expect(page.get_by_role("heading", level=1)).to_have_text("Agent 工程入门")
@@ -451,7 +453,7 @@ def exercise_preview(browser, scratch):
             saved.value.save_as(path)
             assert path.read_bytes() == (SITE / "materials/micrograd" / name).read_bytes()
         page.goto(output.as_uri() + "#/topics")
-        page.locator('.study-shelf a[href="#/topic/segment-tree"]').click()
+        page.locator('.xp-topic-feature a[href="#/topic/segment-tree"]').click()
         guide = page.locator(".study-topic-home")
         expect(guide).to_be_visible()
         expect(guide.locator(".study-subject")).to_have_text("线段树")
@@ -470,6 +472,7 @@ def exercise_preview(browser, scratch):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots", type=Path)
+    parser.add_argument("--base-url", help="Check an already running local preview instead of starting a temporary server.")
     parser.add_argument("--site-dir", type=Path, default=SITE, help="Serve this prepared release directory, or the source site by default.")
     parser.add_argument("--verify-cjk-font", action="store_true", help="Require Noto CJK glyphs in the Chinese heading.")
     args = parser.parse_args()
@@ -477,9 +480,19 @@ if __name__ == "__main__":
         args.screenshots.mkdir(parents=True, exist_ok=True)
     chrome = shutil.which("google-chrome") or shutil.which("chromium")
     if not chrome:
+        mac_chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+        chrome = str(mac_chrome) if mac_chrome.exists() else None
+    if not chrome:
         parser.exit(1, "Install Google Chrome or Chromium before running this check.\n")
     with TemporaryDirectory() as scratch, sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=chrome)
+        if args.base_url:
+            try:
+                exercise_platform(browser, args.base_url.rstrip('/') + '/', Path(scratch), args.screenshots, args.verify_cjk_font)
+                exercise_preview(browser, Path(scratch))
+            finally:
+                browser.close()
+            sys.exit(0)
         handler = partial(SimpleHTTPRequestHandler, directory=args.site_dir)
         with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
             thread = Thread(target=server.serve_forever, daemon=True)

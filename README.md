@@ -1,58 +1,50 @@
 # LEARN Workbench
 
-[打开学习工作台](https://merlxn-ambrosius.github.io/learning-workbench/) · [项目现状](PROJECT_STATE.md) · [重构审查与待定事项](REVIEW.md)
+LEARN 以完整原课为学习主干，连接可复用的知识、原创实验与保存在本机的学习足迹。没有账户、遥测、远端 AI 或自动上传。
 
-从[学科探索](https://merlxn-ambrosius.github.io/learning-workbench/#/home)按领域进入，也可以在[课程目录](https://merlxn-ambrosius.github.io/learning-workbench/#/courses)搜索。[全局知识星图](https://merlxn-ambrosius.github.io/learning-workbench/#/maps)连接所有已收录课程。学科和板块在同一张图上聚焦，每门课首页直接显示自己的先修和后续。从选中的课程可继续展开课内节点。点选一个节点，可查看需要哪些知识、为什么有用、可以继续学什么。跨学科课程共用一个地址，最多三个学科标签。物理学与工程学已预留入口，有内容后再开放活动。
-
-公开站点在页脚显示当前部署提交号。下载的旧预览保留生成时的内容。站内学习记录属于当前浏览器，支持手动导出和恢复。
-
-### 竞赛算法板块
-
-[算法板块](https://merlxn-ambrosius.github.io/learning-workbench/#/block/algorithms)使用 [Antti Laaksonen 的公开手册](https://cses.fi/book.html) 2018 年 7 月 3 日草稿，覆盖三部分、30 章和 118 个编号小节。每章有定位到原书的选读入口与本站原创练习，课程间的先修和后续沿全图连接。可在[区间查询实验](https://merlxn-ambrosius.github.io/learning-workbench/#/lab/range-queries)比较同一组重叠块在不同合并规则下的结果。
-
-### 算法精读
-
-[最短路径、动态规划、线段树和位运算](https://merlxn-ambrosius.github.io/learning-workbench/#/topics)共 25 个知识点，既能从专题目录进入，也能从原书章节与星图进入。「概览与实现」提供例子、伪代码、自拟反例或独立实现任务，C++17 实现默认收起。「证明与边界」给出不变量、推导、代价和适用条件。50 道不同的原站题目分别指向对应的决策或变式。
-
-双向 Dijkstra 的[逐步实验](https://merlxn-ambrosius.github.io/learning-workbench/#/topic/shortest-paths/bidirectional)可以改变直达边的权重，检查“已经接通”和“可以停止”是否发生在同一步。专题阅读会记住最后访问的知识点；查看解答和点开外部题面不会生成通过记录。
-
-[拼接区间的最大子段和](https://merlxn-ambrosius.github.io/learning-workbench/#/topic/segment-tree/boundary-summary)是首个按“留下推导空间”重写的案例。可以先预测，查看两行实际取到的区间，改变右段后再检验自己的规则。[教学产品、讲课者与交互改版研究](DESIGN_SOURCES.md)记录对照、读者评价及下一步如何验证。
-
-### 其他站内活动
-
-| 问题 | 在工作台能做什么 | 原材料 |
-| --- | --- | --- |
-| 一条无法分类的回复，怎样进入摘要？ | 固定三条输入，比较两份下游处理规则，查看真实的逐行运行结果 | [Stanford CS329Z HW1，固定版本](https://github.com/cs329z/assignment1-harness/blob/95f4cb7bfe28a27a7cf5bcb1eccb1aaaf1385eb3/cs329z_assignment1_harness.pdf) |
-| 两个相等的数，是同一个输入吗？ | 比较共享输入与固定因子的数值变化，下载 Python 起步文件，自己实现求导 | [Karpathy 第一讲](https://www.youtube.com/watch?v=VMj-3S1tku0&t=4948s) |
-| 学生比教师更确信是猫，该怎样更新？ | 移动同一个学生概率，比较硬标签交叉熵与蒸馏 KL 对同一 logit 的要求 | [蒸馏原论文](https://arxiv.org/abs/1503.02531) |
-
-工作台里的案例属于公开练习。站内保存的预测、看过的提示和实验输出有助于恢复思路。官方评测、独立解题和延迟迁移需另外取得证据。
-
-## 本地运行
-
-在仓库根目录运行以下命令。生产页面使用原生 ES 模块；运行网站无需安装 npm 包。
+## 运行与体验
 
 ```sh
-npm start
-# http://localhost:4173
+python3 tools/serve_local.py --port 4174
+# http://127.0.0.1:4174/#/home
 npm test
 ```
 
-开发检查使用 Node.js 20+、Python 3 和支持 C++17 的 g++。测试直接编译专题页中展示的参考实现。浏览正式网站无需安装编译器。需要可直接双击的单文件版本时，运行：
+网站无需安装依赖；开发检查需要 Node.js 20+、Python 3、C++17 编译器。`npm start` 也可在 4173 运行。生成可双击的离线版本：
 
 ```sh
 python3 tools/make_preview.py /tmp/LEARN-Workbench.html
 ```
 
-预览包含站内模块、航图和两份 Python 练习文件。外部课程链接需要网络。预览的本地记录与线上网站属于不同的浏览器存储环境。
+| 入口 | 内容 |
+| --- | --- |
+| `#/home` | 真实续学、课程图标、附近知识和温和的学习日提示 |
+| `#/courses` | 完整课程 / 整书学习；选编路径与专题分别呈现 |
+| `#/course/zero-to-hero` | Karpathy 当前公开的 8 讲；micrograd 是第一讲 |
+| `#/course/competitive-programmers-handbook` | CPH 2018-07-03 的 30 章，保留全部原书定位及章节练习 |
+| `#/knowledge/autodiff-gradient-accumulation` | 可独立使用的默认知识内容 |
+| `#/course/learn-optimization-path` | 同一知识节点的课程扩展与真实参数更新实验 |
+| `#/maps` | 课程、章节、共享概念的语义地图，课程顺序不冒充知识依赖 |
+| `#/topics` / `#/studio` | 25 个算法精读单元、三个可操作的反例实验 |
+| `#/problems` | 独立 Problem Set 入口；正式题集尚未发布，无在线判题 |
+| `#/journal` | 学习足迹、研究簿和旧记录的本机备份与恢复 |
 
-## 验证、协作与发布
+旧课程、章节、活动 URL 保持可打开。MIT 六门入口链接完整原课，站内仅提供选读；未声称已导入完整课件。外部题目提交在原站完成。
 
-- 机械计算、存储恢复、路由和离线包有自动化回归。真实浏览器走查使用 Python Playwright 和 Chrome，见 [browser_smoke.py](tools/browser_smoke.py)。这两项只用于开发检查。
-- 跨对话贡献和备份操作见 [SYNC.md](SYNC.md)。LEARN 统筹平台的教学方向、交互和验收；贡献者通过 PR 汇入，产品取舍记入 [DECISIONS.md](DECISIONS.md)。
-- GitHub Actions 验证 PR。合并至默认分支后，Pages 发布从 `site/` 生成的带版本资源，再从公开网址校验入口和资源。本仓库无需从头配置 Pages。
-- 笔记使用浏览器键 `learn-workbench.progress.v1`。清理浏览器或迁移设备前，请导出 JSON。导入需确认，会替换当前记录。仓库和站点均不接收个人笔记、私密题库或凭据。
+## 实现与数据
 
-项目代码使用 [MIT License](LICENSE)。外部课程、论文、作业和品牌各有其权利归属。
+- [内容模型](docs/content-model.md)：稳定知识身份、课程引用、固定版本与有限组合扩展。
+- [进度存储](docs/progress.md)：访问、阅读、自报完成、有帮助/无帮助核验、迁移分列；无自动掌握度。
+- [项目状态](PROJECT_STATE.md)、[公开实现约束](DECISIONS.md)、[验证](REVIEW.md)、[贡献与备份](SYNC.md)。
 
-星图使用的银河全景由 ESO/S. Brunier 拍摄，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 使用。图片在界面中裁切并降低亮度，课程节点与连线由本站绘制。[ESO 原图及署名](https://www.eso.org/public/images/eso0932a/)
+旧 `learn-workbench.progress.v1`、`learn-fieldbook-v1`、`learn-discovery-v1` 保持独立；新学习足迹用 `learn-workbench.learning-ledger.v1`。导出和显式确认导入均在浏览器进行，不自动合并、迁移或上传。清理浏览器前请分别导出需要保留的记录。
+
+## 检查与发布
+
+`npm test` 包含内容、存储、路由、离线打包与参考 C++ 实现的独立小规模穷举。浏览器脚本见 `tools/browser_smoke.py`、`tools/architecture_smoke.mjs`、`tools/world_smoke.mjs`、`tools/knowledge_map_smoke.mjs`。使用一次性测试数据，不使用个人浏览器档案。
+
+GitHub Actions 验证 PR；仅默认分支触发 Pages 部署。功能分支与 PR 本身不会发布网站。公开网站页脚标明实际部署提交；本地候选与公网版本可能不同。
+
+公开仓库只保留可发布内容和运行、验证、协作所必需的文档。内部研究和详细产品决策在独立私有仓库维护；公开构建不依赖它。以前已公开的文档仍可能存在于 Git 历史，文件迁移不改变历史公开事实。
+
+代码和本站原创课件使用 [MIT License](LICENSE)。外部课程、论文、题目与品牌保留原作者权利；本站链接原材料，不复制课程全文。旧地图所用银河图片来自 [ESO/S. Brunier](https://www.eso.org/public/images/eso0932a/)，按 CC BY 4.0 保留署名；新版图形由 LEARN 原创。

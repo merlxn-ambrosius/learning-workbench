@@ -1,7 +1,7 @@
 // Tiny directed graph for inspecting the bidirectional stopping rule.
 // Frontier sums are lower bounds on a route still capable of improving the incumbent.
 const vertex = ['s','a','b','t'];
-export function traceFrontiers(direct) {
+export function traceFrontiers(direct, continueAfterProof = false) {
   const edges = [[0,1,4],[1,2,1],[2,3,4],[0,3,direct]];
   const dist = [[0,Infinity,Infinity,Infinity],[Infinity,Infinity,Infinity,0]];
   const done = [new Set(),new Set()];
@@ -16,7 +16,7 @@ export function traceFrontiers(direct) {
     const mins=candidates.map((i,side)=>i===null?Infinity:dist[side][i]);
     const stop=mins[0]+mins[1]>=best;
     history.push({mins, best, stop, note, dist:dist.map(row=>[...row]), done:done.map(set=>[...set])});
-    if (stop) return history;
+    if ((!continueAfterProof && stop) || mins.every(n=>!Number.isFinite(n))) return history;
     const side=mins[0]<=mins[1]?0:1, u=candidates[side];
     done[side].add(u);
     note=(side?'从终点沿反向边':'从起点沿正向边')+'展开 '+vertex[u]+'。';

@@ -1,4 +1,6 @@
 import { COURSE_LINKS } from './logic.mjs';
+import { getLegacyEntry } from './content-model.mjs';
+export { fullCourses, learningPaths, listCourses, getCourse, getKnowledge, resolveOccurrence, getRouteContext, getLegacyEntry } from './content-model.mjs';
 import { handbookCourses, handbookEdges, handbookBlocks } from './handbook-catalog.mjs';
 
 export const subjects = [
@@ -33,8 +35,9 @@ function recommends(from, to, reason) {
   return { from, to, kind: 'recommended', reason };
 }
 
-// IDs identify courses across subject and block views. A course map selects actual
-// sections and activities; it does not promise to reproduce an entire external course.
+// Legacy map entries retain their IDs and coordinates. These include chapters,
+// selected units and activity collections. New course navigation uses fullCourses
+// from content-model.mjs; membership is never a knowledge-dependency edge.
 const existingCourses = [
   {
     id: 'agent', title: 'Agent 工程入门', subjectIds: ['ai', 'computing'], status: 'available',
@@ -163,7 +166,9 @@ const existingCourses = [
   },
 ];
 
-export const courses = [...existingCourses, ...handbookCourses];
+// Compatibility export: 40 historic graph nodes, not a count of full courses.
+export const courses = [...existingCourses, ...handbookCourses].map(unit => ({ ...unit, ...getLegacyEntry(unit.id) }));
+export const legacyUnits = courses;
 
 // A single authored relationship is shared by every block where both ends appear.
 // Reasons name the particular task and prerequisite knowledge; no edge gates access.

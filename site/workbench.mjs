@@ -19,7 +19,7 @@ for (const course of courses) {
   }
 }
 const statusLabels = { available: '站内可学', external: '开放原课', planned: '规划中' };
-const navItems = [['home','学科探索'], ['courses','课程目录'], ['maps','知识图谱'], ['journal','学习记录']];
+const navItems = [['home','我的学习'], ['courses','课程目录'], ['maps','知识星图'], ['problems','Problem Set'], ['journal','学习记录']];
 const url = (path, params = {}) => {
   const query = new URLSearchParams(Object.entries(params).filter(([,value]) => Boolean(value)));
   return '#/' + path + (query.size ? '?' + query : '');
@@ -37,9 +37,10 @@ function subjectArt(id) {
   };
   return '<svg class="subject-art" aria-hidden="true" viewBox="0 0 130 110" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">' + (g[id] || '') + '</svg>';
 }
-const homeTitles = {home:'学科探索', courses:'课程目录', learn:'课程目录', lab:'课程目录', maps:'知识图谱', atlas:'专题练习索引', journal:'学习记录', sync:'协作与备份'};
+const homeTitles = {home:'我的学习', courses:'课程目录', learn:'课程目录', lab:'课程目录', maps:'知识星图', problems:'Problem Set', workshop:'构造工坊', atlas:'专题练习索引', journal:'学习记录', sync:'协作与备份'};
 export function isLearningUnit(path) { return activityCourses.has(path) || Boolean(studyRoute(path) && path.split('/').length===3); }
 export function routeTitle(path, atlas) {
+  if (path === 'studio' || path.startsWith('studio/')) return '反例工作台';
   if (path === 'topics') return '算法专题';
   const study=studyRoute(path);
   if(study)return path===studyPath(study.track.id)?study.track.title:study.track.title+' · '+study.row[1];
@@ -51,12 +52,12 @@ export function routeTitle(path, atlas) {
 }
 export function renderWorkspaceShell(path, body, revision) {
   const area = path.split('/')[0];
-  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', topic:'courses', topics:'courses', learn:'courses', lab:'courses', practice:'courses'})[area] || area;
+  const active = ({subject:'home', block:'maps', atlas:'maps', course:'courses', topic:'courses', topics:'courses', learn:'courses', lab:'courses', practice:'courses',knowledge:'courses'})[area] || area;
   const nav = navItems.map(([key, title]) => `<a href="#/${key}" ${active === key ? 'aria-current="' + (key === path ? 'page':'location') + '"' : ''}>${title}</a>`).join('');
   const course = activityCourses.get(path);
-  const crumb = course ? breadcrumbs([['课程目录','#/courses'],[course.title,url('course/'+course.id)],['学习活动']]) : '';
+  const crumb = course && !body.includes('class="learning-ribbon"') ? breadcrumbs([['课程目录','#/courses'],[course.title,url('course/'+course.id)],['学习活动']]) : '';
   const version = /^[a-f0-9]{40}$/.test(revision) ? `<a class="release-id" href="https://github.com/merlxn-ambrosius/learning-workbench/commit/${revision}">版本 ${revision.slice(0,7)}</a>` : '';
-  return `<header class="mast"><div class="mast-inner"><a class="brand" href="#/home" aria-label="LEARN Workbench 首页"><svg aria-hidden="true" viewBox="0 0 34 34" fill="none"><rect width="34" height="34" rx="8" fill="#253d82"/><path d="m7 12 9.5 4 10-5v12l-10 5-9.5-4z" stroke="#fff" stroke-width="1.5"/><path d="m7 8 9.5 4 10-5M16.5 16v12" stroke="#c7e89c" stroke-width="1.6"/></svg>LEARN<span>Workbench</span></a><nav aria-label="工作台导航">${nav}</nav></div></header><main class="content" id="page-content" tabindex="-1">${crumb}${body}</main><footer class="bench-footer"><span>LEARN Workbench</span>${version}<a href="#/sync">协作与备份</a></footer>`;
+  return `<header class="mast world-mast"><div class="mast-inner"><a class="brand" href="#/home" aria-label="LEARN Workbench 首页"><svg aria-hidden="true" viewBox="0 0 40 40" fill="none"><path d="M5 29 20 5l15 24-15 7Z" stroke="currentColor" stroke-width="1.5"/><path d="m11 27 9-15 9 15-9 4Z M20 5v31" stroke="currentColor"/><circle cx="20" cy="23" r="3" fill="currentColor"/></svg>LEARN<span>STUDY<br>IN MOTION</span></a><nav aria-label="工作台导航">${nav}</nav></div></header><main class="content" id="page-content" data-world-page="${h(area)}" tabindex="-1">${crumb}${body}</main><footer class="bench-footer"><span><b>LEARN</b> · 让每一个发现，都有下一步。</span>${version}<div><a href="#/workshop">构造工坊</a><a href="#/sync">协作与备份</a></div></footer>`;
 }
 function breadcrumbs(parts) {
   return `<nav class="crumbs" aria-label="当前位置">${parts.map(([name,href])=>href?`<a href="${h(href)}">${h(name)}</a>`:`<span aria-current="page">${h(name)}</span>`).join('<i aria-hidden="true">/</i>')}</nav>`;
@@ -84,6 +85,7 @@ function blockShelf(items, sid) {
 function home(lastRoute, atlas) {
   const principalBlocks=blocks.filter(b=>!b.id.startsWith('alg-'));
   return `<header class="catalog-hero"><div><h1 id="workbench-title">学科探索</h1><p>按学科发现课程，也可以从一个问题追到它的来处。</p></div>${searchForm('',true)}</header>
+  <p class="studio-entry"><a href="#/studio">有几分钟空闲？进入反例工作台，试着推翻一个想法 →</a></p>
   <a href="#/maps" class="universe-entry" aria-label="打开全局知识星图"><div><h2>知识星图</h2><p>放大一个方向，沿着连线寻找下一门课。</p><span class="map-cta">打开全局星图 <b aria-hidden="true">↗</b></span></div>${renderUniverseThumbnail(universe)}</a>
   <div class="subject-grid">${subjects.map(subjectCard).join('')}</div>${resumeLink(lastRoute,atlas)}
   <section class="shelf"><div class="shelf-head"><div><h2>聚焦一个板块</h2><p>选择学习方向，在同一张星图中查看它的课程。</p></div></div>${blockShelf(principalBlocks)}</section>`;
@@ -109,7 +111,7 @@ function chapterList(block) {
 }
 function maps(scopeId,selected) {
   const scope = universe.scopes.find(s=>s.id===scopeId);
-  return `<header class="page-intro universe-intro"><h1>知识星图</h1><p>每颗星是一门课程。选择课程查看先修与后续，也可以展开它的学习节点。</p></header>
+  return `<header class="page-intro universe-intro"><span class="world-kicker">THE KNOWLEDGE FIELD / 远看关联，近看机制</span><h1>知识地图</h1><p>先选一片地形，再走近课程与真实依赖。已有目标，也可以直接找课。</p></header>
     ${renderKnowledgeUniverse(universe,{mode:'global',scopeId:scope?.id,selectedId:selected})}
     <div class="map-directory-links"><a href="#/topics">四个算法精读专题 →</a><a href="#/block/algorithms">竞赛算法 · 手册与章节目录 →</a><a href="#/atlas">早期专题练习索引 →</a></div>`;
 }
