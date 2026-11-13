@@ -10,3 +10,12 @@ private/
 learn-progress-*.json
 learn-progress-*-original.txt
 __pycache__/
+learn-experiment-*.json
+
+# Learner-owned fieldbook exports
+learn-fieldbook-*.json
+
+# Local internal research is archived separately; never stage personal records.
+research/learning-mechanisms/
+research/product-world/
+learn-learning-ledger-*.json

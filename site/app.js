@@ -1,4 +1,12 @@
+import {renderKnowledgeMap,bindKnowledgeMap} from './knowledge-map.mjs';
+import {experiencePage,experienceResults,experienceContext,experienceRibbon,bindExperience} from './experience-view.mjs';
+import {openLearningLedger} from './learning-ledger.mjs';
+import {renderLearningProgress,renderLearningSummary,bindLearningProgress} from './progress-view.mjs';
+import {getCourse,getKnowledge,listCourseActivities} from './content-model.mjs';
 import {studyPage,bindStudy} from './study-reader.mjs';
+import {discoveryPage,bindDiscovery} from './discovery-view.mjs';
+import {openFieldbook} from './fieldbook.mjs';
+import {worldPage,worldJournal,learningContext,learningRibbon,noteComposer,bindWorld} from './world-view.mjs';
 import {studyRoute} from './study-index.mjs';
 import { renderWorkspaceShell, platformPage, resultList, bindPlatform, routeTitle, isLearningUnit, missingPage } from './workbench.mjs';
 import { renderAgentGuide, renderAgentLab, agentPolicyNames, agentScenarioNames } from './agent-view.mjs';
@@ -14,6 +22,8 @@ import {
 const $ = (selector, root = document) => root.querySelector(selector);
 const progressStore = openProgressStore(() => localStorage);
 let progress = progressStore.initial;
+const fieldbook = openFieldbook(() => localStorage);
+const learningLedger = openLearningLedger(() => localStorage);
 let atlas = null;
 let atlasStatus = 'idle';
 const session = {studentCat:95, klRevealed:false, atlasQuery:'', atlasRoute:'all'};
@@ -29,12 +39,23 @@ function persist(next = progress, options) {
   return saved;
 }
 function record(kind, summary, help = '未记录') {
-  progress.evidence.push({kind, summary, help, date: new Date().toISOString()});
-  return persist();
+  const date=new Date().toISOString();
+  progress.evidence.push({kind, summary, help, date});
+  const saved=persist();
+  const context=experienceContext(getPath(),routeOptions());
+  if(saved&&context?.activityId){
+    const helpKind=/解释|推导/.test(help)?'solution':/提示/.test(help)?'hint':'unknown';
+    if(!learningLedger.record({...context,kind:kind==='KL 推导'?'help':'practice',attemptId:'legacy:'+date,help:helpKind,outcome:'submitted',verification:'self-report',evidence:summary}))showToast(learningLedger.warning);
+  }
+  return saved;
 }
 function saveChapterAttempt(attempt) {
   if (!progress.evidence.includes(attempt)) progress.evidence.push(attempt);
-  return persist();
+  const saved=persist(),context=experienceContext(getPath(),routeOptions());
+  if(saved&&context?.activityId){
+    if(!learningLedger.record({...context,kind:'practice',attemptId:'chapter:'+attempt.date,help:/已看推导/.test(attempt.help)?'solution':/已看提示/.test(attempt.help)?'hint':'unknown',outcome:/与参考值一致/.test(attempt.summary)?'passed':'failed',verification:'local-check',evidence:attempt.summary}))showToast(learningLedger.warning);
+  }
+  return saved;
 }
 function showToast(message) {
   let box = $('#toast');
@@ -162,7 +183,7 @@ function journal() {
   const evidence = progress.evidence.slice(-80).reverse();
   const firstDate = date=>{try{return new Date(date).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return date;}};
   return `<p class="eyebrow">本地笔记与实验</p><h1 class="page-title">学习记录</h1><p class="lead">保存自己的推导和实验痕迹，而不是伪精确的掌握分数。信息仅存于当前浏览器；换设备或清除数据前请导出备份。</p>
-  <div class="two-columns"><section class="stack"><div class="card"><div class="step-tag">NOTEBOOK / AUTOSAVE</div><h3>我的思考</h3>
+  ${renderLearningSummary(learningLedger)}${worldJournal(fieldbook)}<h2 class="legacy-journal-title">课程笔记与原有学习记录</h2><div class="two-columns"><section class="stack"><div class="card"><div class="step-tag">NOTEBOOK / AUTOSAVE</div><h3>我的思考</h3>
     <div class="field"><label for="note-agent">Agent 工程</label><textarea maxlength="${NOTE_LIMIT}" data-note="agent" id="note-agent" placeholder="写下你独立发现的机制、没解决的问题…">${escapeHtml(progress.notes.agent)}</textarea></div>
     <div class="field"><label for="note-kl">模型与梯度</label><textarea maxlength="${NOTE_LIMIT}" data-note="kl" id="note-kl" placeholder="今天最关键的推导或反例…">${escapeHtml(progress.notes.kl)}</textarea></div>
     <div class="field"><label for="note-general">其他想法</label><textarea maxlength="${NOTE_LIMIT}" data-note="general" id="note-general" placeholder="下一次学习要从哪里继续？">${escapeHtml(progress.notes.general)}</textarea></div><div id="save-status" class="status-line" role="status">${progressStore.warning ? '此页暂时无法保存到浏览器，请导出草稿。' : '修改后自动保存到本地浏览器（每栏最多 12000 字符）'}</div></div>
@@ -177,7 +198,10 @@ function render() {
   const route = getPath();
   if ((route === 'atlas' || route.startsWith('atlas/node/')) && atlasStatus === 'idle') loadAtlas();
   const options = routeOptions();
-  const platform = studyPage(route, options, id=>{
+  const context = experienceContext(route,options) || learningContext(route,options);
+  if (context) fieldbook.remember(context);
+  if (context?.activityId) learningLedger.visit(context);
+  const platform = (route==='maps' && options.get('legacy')!=='1' ? renderKnowledgeMap(options) : null) ?? experiencePage(route,options,fieldbook,learningLedger,progress.lastRoute) ?? worldPage(route,options,fieldbook,progress.lastRoute) ?? discoveryPage(route, options) ?? studyPage(route, options, id=>{
     if(studyRoute(getPath())?.track.id===id)render();
   }) ?? platformPage(route, progress.lastRoute, atlas, options);
   const body = platform ?? (
@@ -188,8 +212,15 @@ function render() {
     }):
     route==='atlas'||route.startsWith('atlas/node/')?atlasIndex():route==='journal'?journal():route==='sync'?syncPage():missingPage());
   const storageNotice = `<p class="warning-panel" id="storage-notice" role="status" ${progressStore.warning ? '' : 'hidden'}>${escapeHtml(progressStore.warning)}</p>`;
-  $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + body, document.querySelector('meta[name="learn-revision"]')?.content);
+  $('#app').innerHTML = renderWorkspaceShell(route,storageNotice + experienceRibbon(context) + body + (context?.activityId ? renderLearningProgress(learningLedger,context,[context.activityId]) : '') + noteComposer(fieldbook,context), document.querySelector('meta[name="learn-revision"]')?.content);
   bindPlatform(route, $('#page-content'), saveChapterAttempt);
+  bindDiscovery($('#page-content'),route,options);
+  bindWorld($('#page-content'),fieldbook,context, note=>{
+    if(context && !learningLedger.record({...context,activityId:context.activityId||'course-note:'+context.course,kind:'note',evidence:note.body,id:note.id}))showToast(learningLedger.warning);
+  });
+  bindExperience($('#page-content'),learningLedger,context,render);
+  if(route==='maps' && options.get('legacy')!=='1')bindKnowledgeMap($('#page-content'));
+  bindLearningProgress($('#page-content'),learningLedger,context,{onChange:render,onError:showToast});
   if (studyRoute(route)) bindStudy($('#page-content'),route,render);
   if (route === 'learn/micrograd') {
     mountMicrograd($('.mg-unit'), progress.micrograd, next => {
@@ -203,14 +234,14 @@ function render() {
       persist();
     }
   }
-  document.title = `${routeTitle(route, atlas)} · LEARN Workbench`;
+  document.title = `${route.startsWith('course/') ? getCourse(route.slice(7))?.title || routeTitle(route,atlas) : route.startsWith('knowledge/') ? getKnowledge(route.slice(10))?.title || '共享知识' : route==='problems' ? 'Problem Set' : route==='home' ? '我的学习' : routeTitle(route, atlas)} · LEARN Workbench`;
 }
 
 function filterCatalog(input) {
   const results = $('#catalog-results');
   if (!results) return;
   const q = input.value.slice(0,150);
-  results.innerHTML = resultList(q, results.dataset.subject);
+  results.innerHTML = experienceResults(q, results.dataset.subject || undefined);
   const options = routeOptions();
   if (q) options.set('q',q); else options.delete('q');
   const query = options.toString();
@@ -379,10 +410,10 @@ function focusLinkedSection() {
   const node=options.get('node');
   let target;
   if (route.startsWith('course/') && node && /^[a-zA-Z0-9._-]{1,80}$/.test(node)) {
-    target=document.getElementById('kg-course-'+route.slice(7)+'-'+node+'-title');
+    target=document.getElementById('kg-course-'+route.slice(7)+'-'+node+'-title') || document.getElementById('lesson-'+node);
   } else {
     const id=options.get('section');
-    if (!id || !isLearningUnit(route) || !/^[a-z][a-z0-9-]{1,80}$/.test(id)) return false;
+    if (!id || (!isLearningUnit(route) && !route.startsWith('course/')) || !/^[a-z][a-z0-9-]{1,80}$/.test(id)) return false;
     target=document.getElementById(id);
   }
   if (!target || !target.closest('#page-content')) return false;

@@ -1,7 +1,8 @@
 import { escapeHtml as h } from './html.mjs';
+import { UNIVERSE_VIEW_KEY, UNIVERSE_LEVELS, semanticLevel, resolveUniverseView, nextUniverseNode } from './universe-navigation.mjs';
 
 const NS = 'http://www.w3.org/2000/svg';
-const colors = ['#aab7ff','#f6c984','#7ce3ce','#e6a7cf','#a8d5ff','#d8b2ff','#a8dfa9'];
+const colors = ['#527e98','#627b55','#a06c47','#52776a','#b9653f','#766b89','#8b773d'];
 const anchors = [[-440,-65],[-442,187],[-220,-255],[-178,263],[35,-10],[345,-200],[430,160]];
 const icons = {
   window:'<path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/>',
@@ -19,15 +20,13 @@ function seed(text) {
   for (const ch of text) value = Math.imul(value ^ ch.codePointAt(0),16777619);
   return value >>> 0;
 }
-function stars(count) {
-  let state = 424242;
-  const next = () => ((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);
-  return Array.from({length:count},() => {
-    const x=(next()*1000).toFixed(1), y=(next()*600).toFixed(1), r=(.45+next()**3*1.15).toFixed(2);
-    return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" opacity="'+(.13+next()*.49).toFixed(2)+'"/>';
-  }).join('');
+// Contours represent a region's footprint, never a knowledge dependency.
+function contourPath(cx,cy,rx,ry) {
+  return 'M'+(cx-rx)+','+cy+' C'+(cx-rx*.9)+','+(cy-ry*.8)+' '+(cx-rx*.35)+','+(cy-ry)+' '+cx+','+(cy-ry*.82)+
+    ' C'+(cx+rx*.8)+','+(cy-ry*1.15)+' '+(cx+rx*1.08)+','+(cy-ry*.2)+' '+(cx+rx)+','+(cy+ry*.15)+
+    ' C'+(cx+rx*.85)+','+(cy+ry)+' '+(cx+rx*.3)+','+(cy+ry*.83)+' '+(cx-rx*.1)+','+(cy+ry)+
+    ' C'+(cx-rx*.8)+','+(cy+ry*.85)+' '+(cx-rx*1.12)+','+(cy+ry*.45)+' '+(cx-rx)+','+cy+' Z';
 }
-const backdrop = '<svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" class="uv-sky"><g fill="#d2dcff">'+stars(185)+'</g></svg>';
 
 function regionAnchor(index) {
   if (index < anchors.length) return anchors[index];
@@ -112,15 +111,15 @@ export function renderUniverseThumbnail(model) {
     const p=project({x:g.cx,y:g.cy});
     return '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+g.glow*camera.k*.8+'" fill="'+g.color+'" opacity=".08"/>';
   }).join('');
-  return '<svg class="uv-thumb" aria-hidden="true" viewBox="0 0 900 365" preserveAspectRatio="xMidYMid meet"><g fill="#bacdf8" transform="scale(.9 .61)">'+stars(75)+'</g><g class="uv-thumb-glow">'+haze+'</g><g fill="none">'+paths+'</g>'+beacons+'</svg>';
+  return '<svg class="uv-thumb" aria-hidden="true" viewBox="0 0 900 365" preserveAspectRatio="xMidYMid meet"><g class="uv-thumb-glow">'+haze+'</g><g fill="none">'+paths+'</g>'+beacons+'</svg>';
 }
 
 const control=(action,label)=>'<button type="button" data-uv-action="'+action+'" aria-label="'+label+'" title="'+label+'">'+icon(action)+'</button>';
 function panelHeader(model,opts) {
   if (opts.mode==='neighborhood') return '';
-  return '<div class="uv-toolbar"><label>聚焦范围<select data-uv-scope><option value="">全部知识</option>'+
+  return '<div class="uv-toolbar"><label>探索范围<select data-uv-scope><option value="">全域地形</option>'+
     model.scopes.map(s=>'<option value="'+h(s.id)+'"'+(s.id===opts.scopeId?' selected':'')+'>'+h(s.title)+'</option>').join('')+
-    '</select></label><label>定位课程<select data-uv-locate></select></label><button type="button" data-uv-action="all">返回全图</button></div>';
+    '</select></label><label>直接找课<select data-uv-locate></select></label><button type="button" data-uv-action="all">返回全域</button></div>';
 }
 
 export function renderKnowledgeUniverse(model, options={}) {
@@ -133,17 +132,15 @@ export function renderKnowledgeUniverse(model, options={}) {
   }));
   const data={nodes,groups:model.groups,scopes:model.scopes,edges:model.edges};
   const serialized=JSON.stringify({model:data,options:opts}).replace(/</g,'\\u003c');
-  const image=mode==='neighborhood'?'':'<img class="uv-galaxy" src="./assets/milky-way-eso0932a.jpg" alt="" aria-hidden="true" draggable="false">';
-  const credit=mode==='neighborhood'?'':'<span class="uv-credit">星空摄影 <a href="https://www.eso.org/public/images/eso0932a/" target="_blank" rel="noopener noreferrer">ESO/S. Brunier</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></span>';
   const full=mode==='neighborhood' && linkOK(opts.fullHref) ? '<a class="uv-full" data-uv-full href="'+h(opts.fullHref)+'">'+icon('expand')+'在知识全图中展开 '+icon('arrow')+'</a>' : '';
-  const openWindow='<button type="button" class="uv-immersive" data-uv-immersive aria-haspopup="dialog">'+icon('window')+'大屏浏览星图</button>';
-  const dialog='<dialog class="uv-dialog" data-uv-dialog aria-label="大屏知识星图"><header class="uv-dialog-head"><strong>知识星图</strong><button type="button" data-uv-jump disabled>查看节点详情 ↓</button><button type="button" data-uv-close autofocus>退出大屏</button></header></dialog>';
+  const openWindow='<button type="button" class="uv-immersive" data-uv-immersive aria-haspopup="dialog">'+icon('window')+'展开地图</button>';
+  const dialog='<dialog class="uv-dialog" data-uv-dialog aria-label="大屏知识星图"><header class="uv-dialog-head"><strong>知识地图</strong><button type="button" data-uv-jump disabled>查看节点详情 ↓</button><button type="button" data-uv-close autofocus>退出大屏</button></header></dialog>';
   return '<section class="uv uv-'+mode+'" data-knowledge-universe aria-label="'+(mode==='neighborhood'?'本课程的前置和后续课程':'可交互的全域知识图')+'"><div class="uv-workspace"><div class="uv-launchbar">'+panelHeader(data,opts)+openWindow+'</div>'+
-    '<div class="uv-space"><div class="uv-plane">'+image+backdrop+
-    '<svg class="uv-chart" data-uv-stage tabindex="0" role="group" aria-label="课程依赖图，可用方向键平移，加减键缩放，Home 适应视图"></svg>'+
-    '<div class="uv-view-info"><span data-uv-caption></span><span data-uv-count></span></div>'+
+    '<div class="uv-space"><div class="uv-view-info" role="status" aria-live="polite"><span data-uv-level></span><span data-uv-caption></span><span data-uv-count></span></div><div class="uv-plane">'+
+    '<svg class="uv-chart" data-uv-stage tabindex="0" role="group" aria-label="知识地图，图上用方向键平移；节点上用方向键移动焦点，回车选择；加减键缩放，Home 适应视图"></svg>'+
+    '<div class="uv-compass" aria-hidden="true"><span>LEARN</span><b>＋</b><span>FIELD MAP</span></div>'+
     '<div class="uv-hud"><output data-uv-scale aria-label="相对全图缩放比例"></output>'+control('out','缩小')+control('in','放大')+control('fit','适应当前视图')+'</div></div>'+
-    '<div class="uv-legend"><span>先修 → 后续</span><span><i></i>必要前置</span><span><i class="uv-dash"></i>建议准备</span><span class="uv-hint">拖动平移 · 滚轮或双指缩放</span>'+credit+'</div></div>'+
+    '<div class="uv-legend"><span data-uv-legend-summary>选择一处地形，查看课程关系</span><span class="uv-relation-key"><i></i>必要前置 →</span><span class="uv-relation-key"><i class="uv-dash"></i>建议准备 →</span><span class="uv-hint">拖动平移 · 滚轮 / 双指缩放</span></div></div>'+
     '<div data-uv-inspector class="uv-inspector"></div>'+full+'</div>'+dialog+
     '<script type="application/json" class="uv-config">'+serialized+'</script></section>';
 }
@@ -160,7 +157,7 @@ function matchesScope(model,scopeId) {
 }
 function inspect(model,selection,expanded,childId,mode,homeId) {
   const n=model.nodes.find(n=>n.id===selection);
-  if (!n) return '<p class="uv-empty">点选图上的课程，可查看前置、后续和学习入口。</p>';
+  if (!n) return '<p class="uv-empty">选择一个板块进入课程关系；也可以在「直接找课」中选择起点。已有经验可以替代准备，每门课都可直接进入。</p>';
   const child=n.children.find(c=>c.id===childId);
   const current=child || n;
   const open=linkOK(current.href) && (child || mode!=='neighborhood' || homeId!==n.id)
@@ -206,6 +203,8 @@ function bindOne(host) {
   const inspector=host.querySelector('[data-uv-inspector]');
   const caption=host.querySelector('[data-uv-caption]');
   const count=host.querySelector('[data-uv-count]');
+  const levelOutput=host.querySelector('[data-uv-level]');
+  const legendSummary=host.querySelector('[data-uv-legend-summary]');
   const scaleOutput=host.querySelector('[data-uv-scale]');
   const tray=host.querySelector('.uv-workspace');
   const dialog=host.querySelector('[data-uv-dialog]');
@@ -215,12 +214,24 @@ function bindOne(host) {
   const {positions,regions}=layoutUniverse(model);
   const nodes=new Map(model.nodes.map(n=>[n.id,n]));
   const homeId=options.mode==='neighborhood' ? options.selectedId : null;
-  let selection=nodes.has(options.selectedId) ? options.selectedId : '';
-  let scope=model.scopes.some(s=>s.id===options.scopeId) ? options.scopeId : '';
+  const storageKey=UNIVERSE_VIEW_KEY+':'+options.mode+':'+(homeId || (options.mode==='scope' ? options.scopeId : '') || '');
+  let saved=null;
+  try { saved=JSON.parse(sessionStorage.getItem(storageKey)); } catch { /* Unavailable/corrupt navigation context never blocks the map. */ }
+  if(new URLSearchParams(location.hash.split('?')[1]||'').get('view')==='regions')saved=null;
+  const restored=resolveUniverseView(model,saved,{selectedId:options.selectedId,scopeId:options.scopeId});
+  let selection=restored.selectedId;
+  let scope=restored.scopeId;
   let visible=new Set(homeId ? localNeighborhood(model,homeId) : matchesScope(model,scope));
   if (!visible.has(selection)) selection='';
-  let expanded=false, childId='', subPositions=new Map(), frameTarget=null, returnCamera=null;
+  let expanded=!homeId && restored.expanded, childId=restored.childId, subPositions=new Map(), frameTarget=null, returnCamera=null;
   let width=1000,height=510,camera={x:0,y:0,k:1},globalFit=1,dirty=0;
+  let level=homeId ? 'courses' : restored.level, initialized=false, focusedNode='';
+  function saveView() {
+    if(!initialized || !host.isConnected)return;
+    try { sessionStorage.setItem(storageKey,JSON.stringify({
+      scopeId:scope,selectedId:selection,expanded,childId,camera,returnCamera,rotated,fit:globalFit,level,
+    })); } catch { /* Navigation context is optional; learning records are untouched. */ }
+  }
   const degree=new Map(model.nodes.map(n=>[n.id,0]));
   for (const e of model.edges) {
     degree.set(e.from,(degree.get(e.from)||0)+1); degree.set(e.to,(degree.get(e.to)||0)+1);
@@ -236,22 +247,24 @@ function bindOne(host) {
   const markerId='uv-arrow-'+(homeId || options.scopeId || options.mode || 'global').replace(/[^\w-]/g,'');
   const defs=el('defs');
   const marker=el('marker',{id:markerId,viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:5.3,markerHeight:5.3,orient:'auto',markerUnits:'userSpaceOnUse'});
-  marker.append(el('path',{d:'M0 0 8 4 0 8 2 4Z',fill:'#e3ebff'}));defs.append(marker);
+  marker.append(el('path',{d:'M0 0 8 4 0 8 2 4Z',fill:'#315c50'}));defs.append(marker);
   const mist=el('g',{'aria-hidden':'true'}), linkLayer=el('g',{'aria-hidden':'true'}), courseLayer=el('g'), regionLayer=el('g'), childLayer=el('g');
   svg.append(defs,mist,linkLayer,regionLayer,courseLayer,childLayer);
   const regionEls=new Map();
   for(const [i,r] of regions.entries()) {
-    const gradientId=markerId+'-nebula-'+i;
-    const grad=el('radialGradient',{id:gradientId});
-    for (const [offset,opacity] of [[0,.17],[.39,.077],[1,0]]) grad.append(el('stop',{offset,'stop-color':r.color,'stop-opacity':opacity}));
-    defs.append(grad);
-    const haze=el('ellipse',{fill:'url(#'+gradientId+')'});
-    const label=el('g',{'data-uv-group':r.id,class:'uv-region'});
-    const dot=el('path',{d:'M-3 0 0-3 3 0 0 3Z',fill:r.color});
-    label.append(dot,el('text',{x:10,y:4,fill:r.color},r.title));
-    label.append(el('title',{},'聚焦 '+r.title));
-    mist.append(haze);regionLayer.append(label);
-    regionEls.set(r.id,{label,haze});
+    const haze=el('g',{'aria-hidden':'true',class:'uv-contours'});
+    for(let ring=0;ring<4;ring++) haze.append(el('path',{class:'uv-contour',fill:ring===0?r.color:'none',
+      'fill-opacity':ring===0?'.055':'0',stroke:r.color,'stroke-opacity':ring===0?'.32':'.16'}));
+    const label=el('g',{'data-uv-group':r.id,class:'uv-region',role:'button',tabindex:'0',
+      'aria-label':r.title+'，'+r.items.length+' 门课程，进入课程关系'});
+    const card=el('rect',{x:-72,y:-35,width:144,height:70,rx:3,class:'uv-region-card'});
+    label.append(card,el('text',{x:-58,y:-15,class:'uv-region-index'},String(i+1).padStart(2,'0')+' / KNOWLEDGE'),
+      el('text',{x:-58,y:5,class:'uv-region-title'},r.title),
+      el('text',{x:-58,y:24,class:'uv-region-count'},r.items.length+' 门课程   ↗'));
+    label.append(el('title',{},'聚焦 '+r.title+' · '+r.items.length+' 门课程'));
+    const leader=el('line',{class:'uv-label-leader','aria-hidden':'true'});
+    mist.append(haze,leader);regionLayer.append(label);
+    regionEls.set(r.id,{label,haze,leader});
   }
   const edgeEls=model.edges.filter(e=>positions.has(e.from)&&positions.has(e.to)).map(edge=>{
     const path=el('path',{class:'uv-edge '+(edge.kind==='required'?'uv-required':'uv-suggested'),
@@ -303,8 +316,8 @@ function bindOne(host) {
     if(locate) locate.value=selection;
     if(scopeControl) scopeControl.value=scope;
     const allBtn=host.querySelector('[data-uv-action="all"]');
-    if(allBtn) allBtn.disabled=!(scope||selection||expanded);
-    const where=homeId ? '课程邻域' : (model.scopes.find(s=>s.id===scope)?.title || '知识全图');
+    if(allBtn) allBtn.disabled=false;
+    const where=homeId ? '课程邻域' : (model.scopes.find(s=>s.id===scope)?.title || '全域课程关系');
     const current=nodes.get(selection);
     caption.textContent=expanded ? current.title+' · 课内展开' : current ? where+' / '+current.title : where;
     const edgeCount=edgeEls.filter(({edge})=>visible.has(edge.from)&&visible.has(edge.to)).length;
@@ -330,12 +343,27 @@ function bindOne(host) {
   }
   function paint() {
     dirty=0;
+    if(!host.isConnected)return;
+    const activeBefore=document.activeElement;
     const ratio=camera.k/globalFit;
+    const nextLevel=homeId ? 'courses' : semanticLevel({ratio,scopeId:scope,selectedId:selection,expanded,previousLevel:level});
+    const levelChanged=nextLevel!==level;
+    level=nextLevel;host.dataset.uvLevel=level;
+    levelOutput.textContent=UNIVERSE_LEVELS[level];
+    if(level==='regions') {
+      caption.textContent='选择一处地形，走近一个学习方向';
+      count.textContent=regions.filter(r=>r.items.some(id=>visible.has(id))).length+' 个板块 · '+visible.size+' 门课程';
+      legendSummary.textContent='地形为课程归组，不表示先修关系';
+    } else {
+      if(levelChanged) updatePanel();
+      legendSummary.textContent=expanded ? '细虚线为包含关系；箭头为课内先修' : '先修 → 后续 · 点选课程查看关系理由';
+    }
+    svg.setAttribute('aria-label',level==='regions'?'全域知识地形。Tab选择板块，回车进入课程关系。方向键平移，加减键缩放，Home适应视图。':'课程关系地图。节点上用方向键移动焦点，回车选择。地图上用方向键平移，加减键缩放，Home适应视图。');
     const w=width,hgt=height;
     scaleOutput.textContent=Math.round(100*ratio)+'%';
     const connected=new Set();
     for(const {edge,path} of edgeEls) {
-      const drawn=visible.has(edge.from)&&visible.has(edge.to)&&!expanded;
+      const drawn=level!=='regions'&&visible.has(edge.from)&&visible.has(edge.to)&&!expanded;
       path.style.display=drawn?'':'none';
       if(!drawn) continue;
       const a=projection(positions.get(edge.from)), b=projection(positions.get(edge.to));
@@ -344,35 +372,57 @@ function bindOne(host) {
       path.setAttribute('d',shortenedLine(a,b));
       path.classList.toggle('uv-linked',incident);
       path.classList.toggle('uv-dim',!!selection&&!incident);
-      if(incident || homeId || (!selection && ratio>1.6)) path.setAttribute('marker-end','url(#'+markerId+')');
-      else path.removeAttribute('marker-end');
+      path.setAttribute('marker-end','url(#'+markerId+')');
     }
     // Leave the center of each selectable star visible when placing labels.
     const boxes = [...(expanded ? [positions.get(selection), ...subPositions.values()] :
-      [...visible].map(id => positions.get(id)))].filter(Boolean).map(point => {
+      level==='regions' ? [] : [...visible].map(id => positions.get(id)))].filter(Boolean).map(point => {
         const p=projection(point);
         return {x:p.x-2,y:p.y-2,w:4,h:4};
       });
     const fits=(b)=>b.x>=3&&b.y>=3&&b.x+b.w<w-3&&b.y+b.h<hgt-3 &&
       !boxes.some(c=>b.x<c.x+c.w+4&&b.x+b.w+4>c.x&&b.y<c.y+c.h+3&&b.y+b.h+3>c.y);
+    const regionBoxes=[];
     for(const r of regions) {
-      const {label,haze}=regionEls.get(r.id), on=r.items.some(id=>visible.has(id));
+      const {label,haze,leader}=regionEls.get(r.id), on=r.items.some(id=>visible.has(id));
       const p=projection({x:r.cx,y:r.cy});
-      const lp=rotated ? {x:p.x,y:Math.min(...r.items.map(id=>projection(positions.get(id)).y))-16} : projection({x:r.cx,y:r.labelY});
-      haze.style.display=on?'':'none';haze.setAttribute('cx',p.x);haze.setAttribute('cy',p.y);
-      haze.setAttribute('rx',Math.min(700,Math.max(68,r.glow*camera.k*1.8)));
-      haze.setAttribute('ry',Math.min(420,Math.max(45,r.glow*camera.k*1.05)));
-      const labelWidth=r.title.length*12+23;
-      const candidates=[[0,0],[-labelWidth/2,-12],[-labelWidth+16,-2],[5,18]];
-      let placed;
-      if(on&&!homeId&&!expanded&&(ratio<1.65||scope)) {
-        for(const [dx,dy] of candidates) {
-          const box={x:lp.x+dx-5,y:lp.y+dy-10,w:labelWidth,h:17};
-          if(fits(box)){placed=box;break;}
+      haze.style.display=on&&!expanded?'':'none';
+      for(const [ring,path] of [...haze.children].entries()) {
+        const radius=r.glow*camera.k*(.65+ring*.23);
+        path.setAttribute('d',contourPath(p.x,p.y,Math.max(60,radius),Math.max(45,radius*.72)));
+      }
+      const shown=level==='regions'&&on&&!homeId&&p.x>-80&&p.x<width+80&&p.y>-40&&p.y<height+40;
+      label.style.display=shown?'':'none';
+      label.setAttribute('tabindex',shown?'0':'-1');
+      leader.style.display='none';
+      if(shown) {
+        const cardWidth=width<460?122:144,half=cardWidth/2;
+        const card=label.querySelector('rect');card.setAttribute('x',-half);card.setAttribute('width',cardWidth);
+        for(const text of label.querySelectorAll('text'))text.setAttribute('x',-half+12);
+        const x=clamp(p.x,half+16,width-half-16),y=clamp(p.y,46,height-74);
+        let candidates=[[x,y],[x,y+78],[x,y-78],[x,y+156],[x,y-156],
+          [half+16,y],[width-half-16,y],[half+16,y+78],[width-half-16,y+78]];
+        if(width<460) {
+          // Only the callouts use a two-column label grid on a small map.
+          // Their leader lines still point to the unchanged world coordinates.
+          candidates=[];
+          for(let cy=50;cy<=height-84;cy+=80)for(const cx of [half+16,width-half-16])candidates.push([cx,cy]);
+          candidates.sort((a,b)=>Math.hypot(a[0]-p.x,a[1]-p.y)-Math.hypot(b[0]-p.x,b[1]-p.y));
+        }
+        let placed=null;
+        for(const [cx,cy] of candidates) {
+          const box={x:cx-half,y:cy-35,w:cardWidth,h:70};
+          if(box.y<12||box.y+70>height-48)continue;
+          if(regionBoxes.some(b=>box.x<b.x+b.w+7&&box.x+box.w+7>b.x&&box.y<b.y+b.h+7&&box.y+box.h+7>b.y))continue;
+          placed={cx,cy,...box};break;
+        }
+        if(!placed)placed={cx:x,cy:y,x:x-half,y:y-35,w:cardWidth,h:70};
+        label.setAttribute('transform','translate('+placed.cx+' '+placed.cy+')');regionBoxes.push(placed);
+        if(Math.hypot(placed.cx-p.x,placed.cy-p.y)>12) {
+          leader.style.display='';leader.setAttribute('x1',p.x);leader.setAttribute('y1',p.y);
+          leader.setAttribute('x2',placed.cx);leader.setAttribute('y2',placed.cy);
         }
       }
-      label.style.display=placed?'':'none';
-      if(placed){label.setAttribute('transform','translate('+(placed.x+5)+' '+(placed.y+10)+')');boxes.push(placed);}
     }
     for(const rec of childPaths) {
       const a=projection(rec.from),b=projection(rec.to);
@@ -384,17 +434,18 @@ function bindOne(host) {
       const child=item.group.hasAttribute('data-uv-child');
       const selected=child ? item.n.id===childId : item.n.id===selection;
       const p=projection(item.p);
-      const present=child || (visible.has(item.n.id)&&(!expanded||selected));
+      const present=level!=='regions'&&(child || (visible.has(item.n.id)&&(!expanded||selected)));
       item.group.style.display=present?'':'none';
       if(!present)continue;
       item.group.setAttribute('transform','translate('+p.x+' '+p.y+')');
       item.group.setAttribute('aria-pressed',String(selected));
-      item.group.setAttribute('tabindex', (child || homeId || item.n.id===first)?'0':'-1');
+      const inFrame=p.x>=4&&p.x<=w-4&&p.y>=4&&p.y<=hgt-4;
+      item.group.setAttribute('tabindex',inFrame&&(child || homeId || item.n.id===(focusedNode||first))?'0':'-1');
       item.group.classList.toggle('uv-selected',selected);
       item.group.classList.toggle('uv-unrelated',!child&&!!selection&&!selected&&!connected.has(item.n.id));
       item.group.classList.toggle('uv-major',(degree.get(item.n.id)||0)>=4);
       item.label.style.display='none';
-      if(p.x<4||p.x>w-4||p.y<4||p.y>hgt-4) continue;
+      if(!inFrame) continue;
       ordered.push({item,p,child,selected,priority:(selected?1000:0)+(child?150:0)+(connected.has(item.n.id)?100:0)+(degree.get(item.n.id)||0)});
     }
     ordered.sort((a,b)=>b.priority-a.priority);
@@ -412,16 +463,21 @@ function bindOne(host) {
         boxes.push(box);firstOfRegion.add(item.p.group);break;
       }
     }
+    // A semantic layer change must not leave keyboard focus on hidden SVG.
+    if(activeBefore?.closest?.('[data-uv-group],[data-uv-node],[data-uv-child]')&&svg.contains(activeBefore)&&activeBefore.style.display==='none')svg.focus({preventScroll:true});
+    saveView();
   }
   function schedule() {
     svg.dataset.zoom=camera.k.toFixed(4);svg.dataset.centerX=camera.x.toFixed(2);svg.dataset.centerY=camera.y.toFixed(2);
     if(!dirty) dirty=requestAnimationFrame(paint);
+    saveView();
   }
   function syncLocation() {
     if(homeId) return;
     const [path, query] = location.hash.split('?');
     if(path!=='#/maps'&&!path.startsWith('#/block/'))return;
     const params=new URLSearchParams(query);
+    params.delete('view');
     if(path==='#/maps') {
       if(scope)params.set('scope',scope);else params.delete('scope');
     }
@@ -433,38 +489,41 @@ function bindOne(host) {
     }
   }
   function changed() {buildChildren();updatePanel();schedule();syncLocation();}
-  function selectCourse(id,center=false) {
+  function selectCourse(id,center=true) {
     if(!nodes.has(id)) return;
     if(!visible.has(id)){
       if(homeId) return;
       if (options.mode==='scope') {location.hash='/maps?node='+encodeURIComponent(id);return;}
       scope='';visible=matchesScope(model,'');optionsForVisible();
     }
-    selection=id;expanded=false;childId='';frameTarget=null;
+    selection=id;expanded=false;childId='';frameTarget=null;focusedNode=id;
+    if(level==='regions')center=true;
     if(center){
-      const p=orient(positions.get(id));
-      camera={x:p.x,y:p.y,k:Math.max(camera.k,globalFit*2.15)};
+      // A course is useful in context. Fit its actual one-hop dependencies
+      // rather than applying a fixed magnification around the selected dot.
+      frameTarget=localNeighborhood(model,id).filter(key=>visible.has(key));
+      camera=viewportFit(frameTarget);
     }
     changed();
   }
   function selectChild(id) {
     if(!subPositions.has(id))return;
-    childId=id;updatePanel();schedule();
+    childId=id;focusedNode=id;updatePanel();schedule();
   }
   function chooseScope(id) {
     if(homeId || (id&&!model.scopes.some(s=>s.id===id)))return;
     if (options.mode==='scope' && options.scopeId!==id) {
-      location.hash = '/maps'+(id?'?scope='+encodeURIComponent(id):'');
+      location.hash = '/maps'+(id?'?scope='+encodeURIComponent(id):'?view=regions');
       return;
     }
-    scope=id;selection='';expanded=false;childId='';frameTarget=null;
+    scope=id;selection='';expanded=false;childId='';frameTarget=null;focusedNode='';level=id?'courses':'regions';
     visible=matchesScope(model,scope);optionsForVisible();changed();fit();
   }
   function expand() {
     if(!nodes.get(selection)?.children.length)return;
     returnCamera={...camera};expanded=true;childId='';changed();fit();
   }
-  function collapse() {expanded=false;childId='';if(returnCamera)camera=returnCamera;returnCamera=null;changed();}
+  function collapse() {expanded=false;childId='';focusedNode=selection;if(returnCamera)camera=returnCamera;returnCamera=null;changed();}
   function zoom(factor,anchor={x:width/2,y:height/2}) {
     camera=zoomUniverseAt(camera,factor,anchor,width,height,globalFit*.45,Math.max(8,globalFit*12));
     schedule();
@@ -484,7 +543,7 @@ function bindOne(host) {
       rotated=portrait;
     }
     svg.setAttribute('viewBox','0 0 '+width+' '+height);
-    globalFit=viewportFit(positions.keys()).k;
+    globalFit=frameUniverse([...positions.values()].map(orient),width,height,width<520||homeId?34:65).k;
     if(first) fit();
     else {
       camera.k*=globalFit/previous;
@@ -495,8 +554,15 @@ function bindOne(host) {
   optionsForVisible();changed();
   if(selection&&!homeId&&!scope)frameTarget=localNeighborhood(model,selection);
   resized();
+  if(restored.camera) {
+    const turn=c=>restored.rotated===rotated?c:rotated?{x:-c.y,y:c.x,k:c.k}:{x:c.y,y:-c.x,k:c.k};
+    camera=turn(restored.camera);
+    if(restored.returnCamera)returnCamera=turn(restored.returnCamera);
+    if(restored.fit){camera.k*=globalFit/restored.fit;if(returnCamera)returnCamera.k*=globalFit/restored.fit;}
+  }
+  initialized=true;schedule();
   if(typeof ResizeObserver!=='undefined') {
-    const observer=new ResizeObserver(resized);observer.observe(svg);
+    const observer=new ResizeObserver(()=>{if(host.isConnected)resized();else observer.disconnect();});observer.observe(svg);
   }
   openWindow.addEventListener('click',()=>{
     if(dialog.open) return;
@@ -583,11 +649,39 @@ function bindOne(host) {
     const key=event.key;
     if(['Enter',' '].includes(key)){
       const target=event.target.closest(pickSelector);
-      if(target){event.preventDefault();activate(target);}return;
+      if(target){
+        event.preventDefault();activate(target);
+        if(target.hasAttribute('data-uv-group'))requestAnimationFrame(()=>{
+          const first=nodeEls.find(item=>visible.has(item.n.id)&&item.group.style.display!=='none');
+          first?.group.focus();
+        });
+      }return;
     }
     if(key==='Escape' && dialog.open) return; // Native modal close restores focus.
     if(!['+','=','-','Home','ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Escape'].includes(key))return;
     event.preventDefault();
+    const focused=event.target.closest('[data-uv-node],[data-uv-child],[data-uv-group]');
+    if(focused&&key.startsWith('Arrow')) {
+      const isRegion=focused.hasAttribute('data-uv-group');
+      const isChild=focused.hasAttribute('data-uv-child');
+      const id=focused.dataset.uvGroup || focused.dataset.uvChild || focused.dataset.uvNode;
+      const list=isRegion?[...regionEls].filter(([,item])=>item.label.style.display!=='none').map(([id])=>id):
+        (isChild?childEls:nodeEls).filter(item=>item.group.style.display!=='none').map(item=>item.n.id);
+      const points=isRegion?new Map(regions.map(r=>[r.id,orient({x:r.cx,y:r.cy})])):
+        new Map([...(isChild?subPositions:positions)].map(([id,p])=>[id,orient(p)]));
+      const next=nextUniverseNode({currentId:id,direction:key,positions:points,visibleIds:list});
+      if(next) {
+        const target=isRegion?regionEls.get(next).label:(isChild?childEls:nodeEls).find(item=>item.n.id===next)?.group;
+        if(!isRegion) {
+          focusedNode=next;
+          const p=projection((isChild?subPositions:positions).get(next));
+          if(p.x<30||p.x>width-30||p.y<30||p.y>height-30){const q=points.get(next);camera.x=q.x;camera.y=q.y;}
+          schedule();
+        }
+        target?.focus({preventScroll:true});
+      }
+      return;
+    }
     if(key==='Home')fit();
     else if(key==='Escape'&&expanded)collapse();
     else if(key==='+'||key==='=')zoom(1.4);

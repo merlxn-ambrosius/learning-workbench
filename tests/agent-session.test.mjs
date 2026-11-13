@@ -1,3 +1,8 @@
+import {renderKnowledgeMap,bindKnowledgeMap} from '../site/knowledge-map.mjs';
+import * as experience from '../site/experience-view.mjs';
+import * as ledger from '../site/learning-ledger.mjs';
+import * as learningProgress from '../site/progress-view.mjs';
+import {getCourse,getKnowledge,listCourseActivities} from '../site/content-model.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -5,6 +10,9 @@ import vm from 'node:vm';
 import * as logic from '../site/logic.mjs';
 import {studyPage, bindStudy} from '../site/study-reader.mjs';
 import {studyRoute} from '../site/study-index.mjs';
+import {discoveryPage,bindDiscovery} from '../site/discovery-view.mjs';
+import {openFieldbook} from '../site/fieldbook.mjs';
+import * as world from '../site/world-view.mjs';
 import * as workspace from '../site/workbench.mjs';
 import * as agentView from '../site/agent-view.mjs';
 import * as klView from '../site/kl-view.mjs';
@@ -21,6 +29,7 @@ const source = (await readFile(new URL('../site/app.js',import.meta.url),'utf8')
 
 async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
   let storage = saved ? JSON.stringify(saved) : null;
+  const separateStores = new Map();
   const listeners = new Map();
   const elements = new Map();
   const focus = [];
@@ -38,9 +47,9 @@ async function session(saved, {blocked=false, route='#/lab/agent'}={}) {
     body:{appendChild(node){elements.set(node.id,node)}},
   };
   const context = vm.createContext({
-    ...logic, ...workspace, studyPage, bindStudy, studyRoute, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,URLSearchParams,
+    renderKnowledgeMap,bindKnowledgeMap, ...logic, ...workspace, ...world, ...experience, ...ledger, ...learningProgress, getCourse,getKnowledge,listCourseActivities, openFieldbook, studyPage, bindStudy, studyRoute, discoveryPage, bindDiscovery, ...agentView, ...klView, ...html, openProgressStore, atlasListing, microgradPage,mountMicrograd,document,console,URLSearchParams,
     location:{hash:route},
-    localStorage:{getItem(){return storage},setItem(key,value){if(blocked)throw new Error('blocked');storage=value}},
+    localStorage:{getItem(key){return key===logic.STORAGE_KEY?storage:(separateStores.get(key)??null)},setItem(key,value){if(blocked)throw new Error('blocked');if(key===logic.STORAGE_KEY)storage=value;else separateStores.set(key,value)}},
     confirm:()=>true,
     window:{addEventListener(){},scrollTo(){}},
     fetch:async()=>({ok:true,json:async()=>({nodes:[],courses:[],routes:[],sources:[]})}),

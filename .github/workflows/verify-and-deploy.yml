@@ -45,6 +45,21 @@ jobs:
         run: |
           python -m pip install playwright==1.62.0
           python tools/browser_smoke.py --site-dir "$RUNNER_TEMP/learn-pages" --verify-cjk-font --screenshots "$RUNNER_TEMP/learn-review"
+      - name: Install isolated browser-test dependency
+        run: npm install --prefix "$RUNNER_TEMP/learn-browser" --no-save --ignore-scripts playwright@1.62.1
+      - name: Verify course, shared knowledge and returning-learner journeys
+        env:
+          LEARN_PREVIEW_URL: http://127.0.0.1:4174/
+        run: |
+          export CHROME_PATH="$(command -v google-chrome || command -v chromium)"
+          python tools/serve_local.py --port 4174 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          PW_MODULE="$RUNNER_TEMP/learn-browser/node_modules/playwright/index.mjs"
+          node tools/architecture_smoke.mjs "$RUNNER_TEMP/learn-review/architecture" "$PW_MODULE"
+          node tools/world_smoke.mjs "$RUNNER_TEMP/learn-review/journey" "$PW_MODULE"
+          node tools/discovery_smoke.mjs "$RUNNER_TEMP/learn-review/studio" "$PW_MODULE"
+          node tools/knowledge_map_smoke.mjs "$RUNNER_TEMP/learn-review/map" "$PW_MODULE"
       - name: Save disposable-profile layout previews
         if: always()
         uses: actions/upload-artifact@v4
